@@ -6,7 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Repository, LessThanOrEqual } from 'typeorm';
 import { User, UserStatus } from '../common/entities/user.entity';
 import { Role, RoleName } from '../common/entities/role.entity';
 import { UserRole } from '../common/entities/user-role.entity';
@@ -376,65 +376,47 @@ export class AdminService {
       const { page = 1, limit = 10, role, status, search } = query;
       const skip = (page - 1) * limit;
 
-      // For role filtering, we'll need to join userRoles - let's do it separately for now
-      let users: User[];
-      let total: number;
+      // Map frontend role values to backend enum values
+      const roleMapping: { [key: string]: string } = {
+        'job-seeker': 'job_seeker',
+        employer: 'employer',
+        admin: 'admin',
+        hr: 'hr',
+      };
 
+      // Use query builder for all cases to properly combine filters
+      let qb = this.userRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.userRoles', 'userRole')
+        .leftJoinAndSelect('userRole.role', 'roleEntity');
+
+      // Apply role filter with mapping
       if (role) {
-        // Get users with specific role
-        const userIds = await this.userRepository
-          .createQueryBuilder('user')
-          .leftJoin('user.userRoles', 'userRole')
-          .leftJoin('userRole.role', 'role')
-          .where('role.name = :role', { role })
-          .select('user.id')
-          .getRawMany();
-
-        if (userIds.length === 0) {
-          return {
-            data: [],
-            total: 0,
-            page,
-            limit,
-            totalPages: 0,
-          };
-        }
-
-        const ids = userIds.map((u: { user_id: string }) => u.user_id);
-        [users, total] = await this.userRepository.findAndCount({
-          where: ids.map((id) => ({ id })),
-          relations: ['userRoles', 'userRoles.role'],
-          order: { createdAt: 'DESC' },
-          skip,
-          take: limit,
-        });
-      } else {
-        // Simplified query with basic filters and userRoles relation
-        let qb = this.userRepository
-          .createQueryBuilder('user')
-          .leftJoinAndSelect('user.userRoles', 'userRole')
-          .leftJoinAndSelect('userRole.role', 'roleEntity');
-
-        // Apply filters
-        if (status) {
-          qb = qb.andWhere('user.isActive = :isActive', {
-            isActive: status === 'active',
-          });
-        }
-
-        if (search) {
-          qb = qb.andWhere(
-            '(user.email LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)',
-            { search: `%${search}%` },
-          );
-        }
-
-        [users, total] = await qb
-          .orderBy('user.createdAt', 'DESC')
-          .skip(skip)
-          .take(limit)
-          .getManyAndCount();
+        const backendRole = roleMapping[role] || role;
+        qb = qb.andWhere('roleEntity.name = :role', { role: backendRole });
       }
+
+      // Apply status filter
+      if (status) {
+        qb = qb.andWhere('user.isActive = :isActive', {
+          isActive: status === 'active',
+        });
+      }
+
+      // Apply search filter
+      if (search) {
+        qb = qb.andWhere(
+          '(user.email LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)',
+          { search: `%${search}%` },
+        );
+      }
+
+      // Execute query with pagination
+      const [users, total] = await qb
+        .orderBy('user.createdAt', 'DESC')
+        .skip(skip)
+        .take(limit)
+        .getManyAndCount();
 
       return {
         data: users,
@@ -1422,13 +1404,13 @@ export class AdminService {
       try {
         await this.approveBlogComment(commentId);
         approved++;
-      } catch (error) {
-        this.logger.error(
-          `Failed to approve comment ${commentId}:`,
-          error.message,
-        );
-        failed++;
-      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to approve comment ${commentId}:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+      failed++;
+    }
     }
 
     this.logger.log(`Bulk approved ${approved} comments, ${failed} failed`);
@@ -1449,7 +1431,7 @@ export class AdminService {
       } catch (error) {
         this.logger.error(
           `Failed to reject comment ${commentId}:`,
-          error.message,
+          error instanceof Error ? error.message : 'Unknown error',
         );
         failed++;
       }
