@@ -8,9 +8,13 @@ import { User } from '../common/entities/user.entity';
 import { Skill } from '../common/entities/skill.entity';
 import { JobTag } from '../common/entities/job-tag.entity';
 import { JobCategory } from '../common/entities/job-category.entity';
+import { HRModule } from '../hr/hr.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Job, Company, User, Skill, JobTag, JobCategory])],
+  imports: [
+    TypeOrmModule.forFeature([Job, Company, User, Skill, JobTag, JobCategory]),
+    HRModule,
+  ],
   controllers: [JobsController],
   providers: [JobsService],
   exports: [JobsService],

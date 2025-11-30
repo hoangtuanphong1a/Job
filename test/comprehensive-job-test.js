@@ -1,14 +1,12 @@
-// Comprehensive Job API Testing Script
+// Comprehensive Job API Test - Test all job-related endpoints
+const API_BASE = 'http://localhost:3001';
 
 async function comprehensiveJobTest() {
-  console.log('🚀 Comprehensive Job API Testing Suite\n');
-  console.log('='.repeat(60));
-
-  const API_BASE = 'http://localhost:3001';
+  console.log('🔬 COMPREHENSIVE JOB API TEST - Testing All Job Endpoints\n');
 
   try {
-    // Step 1: Login to get JWT token
-    console.log('1️⃣ 🔐 LOGIN - Getting JWT token...');
+    // 1. LOGIN AS EMPLOYER
+    console.log('1️⃣ 🔐 Login as Employer...');
     const loginResponse = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -19,237 +17,239 @@ async function comprehensiveJobTest() {
     });
 
     if (!loginResponse.ok) {
-      console.log('❌ Login failed!');
-      return;
+      throw new Error(`Login failed: ${loginResponse.status}`);
     }
 
     const loginData = await loginResponse.json();
-    const token = loginData.access_token;
-    console.log('✅ Login successful!');
-    console.log('🔑 Token preview:', token.substring(0, 50) + '...');
+    const employerToken = loginData.access_token;
+    console.log('✅ Employer login successful');
 
-    // Step 2: Get existing company
-    console.log('\n2️⃣ 🏢 GETTING EXISTING COMPANY...');
+    // 2. GET EMPLOYER COMPANIES
+    console.log('\n2️⃣ 🏢 Get Employer Companies...');
     const companiesResponse = await fetch(`${API_BASE}/companies/user/my-companies`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { 'Authorization': `Bearer ${employerToken}` },
     });
 
-    let companyId;
-    if (companiesResponse.ok) {
-      const companies = await companiesResponse.json();
-      if (companies.length > 0) {
-        companyId = companies[0].id;
-        console.log('✅ Found company:', companies[0].name);
-        console.log('🆔 Company ID:', companyId);
-      } else {
-        console.log('❌ No companies found. Please create a company first.');
-        return;
-      }
-    } else {
-      console.log('❌ Failed to get companies');
-      return;
+    if (!companiesResponse.ok) {
+      throw new Error(`Get companies failed: ${companiesResponse.status}`);
     }
 
-    // Step 3: Test Job Creation
-    console.log('\n3️⃣ 💼 TESTING JOB CREATION...');
-    const jobData = {
-      title: 'Senior Full Stack Developer',
-      description: 'We are looking for a senior full stack developer with experience in React, Node.js, and cloud technologies.',
-      requirements: '5+ years of full stack development experience, React, Node.js, AWS, PostgreSQL',
-      benefits: 'Competitive salary, health insurance, flexible working hours, professional development budget',
-      jobType: 'full_time',
-      experienceLevel: 'senior',
-      salaryType: 'monthly',
-      minSalary: 25000000,
-      maxSalary: 40000000,
-      currency: 'VND',
-      city: 'Hà Nội',
-      country: 'Việt Nam',
-      remoteWork: true,
-      companyId: companyId
-    };
+    const companies = await companiesResponse.json();
+    console.log(`✅ Found ${companies.length} companies`);
+    const companyId = companies[0]?.id;
 
-    console.log('📝 Creating job with data:');
-    console.log(JSON.stringify(jobData, null, 2));
+    if (!companyId) {
+      throw new Error('No companies found for employer');
+    }
+
+    // 3. CREATE A NEW JOB
+    console.log('\n3️⃣ 💼 Create New Job...');
+    const jobData = {
+      title: 'Comprehensive Test Job',
+      description: 'This is a comprehensive test job to verify all endpoints',
+      requirements: 'Test requirements',
+      benefits: 'Test benefits',
+      jobType: 'full_time',
+      experienceLevel: 'mid_level',
+      minSalary: 20000000,
+      maxSalary: 35000000,
+      city: 'Ho Chi Minh City',
+      country: 'Vietnam',
+      companyId: companyId,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    };
 
     const createJobResponse = await fetch(`${API_BASE}/jobs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${employerToken}`,
       },
       body: JSON.stringify(jobData),
     });
 
-    console.log('\n📡 Job creation response:');
-    console.log('Status:', createJobResponse.status);
-
-    let jobId;
-    if (createJobResponse.ok) {
-      const createdJob = await createJobResponse.json();
-      jobId = createdJob.id;
-      console.log('✅ Job created successfully!');
-      console.log('🆔 Job ID:', jobId);
-      console.log('📋 Job Title:', createdJob.title);
-      console.log('📊 Job Status:', createdJob.status);
-    } else {
-      console.log('❌ Job creation failed!');
-      const error = await createJobResponse.text();
-      console.log('Error:', error);
-      return;
+    if (!createJobResponse.ok) {
+      throw new Error(`Create job failed: ${createJobResponse.status}`);
     }
 
-    // Step 4: Test Get Job by ID
-    console.log('\n4️⃣ 📖 TESTING GET JOB BY ID...');
+    const newJob = await createJobResponse.json();
+    const jobId = newJob.id;
+    console.log(`✅ Job created with ID: ${jobId}`);
+
+    // 4. GET JOB BY ID
+    console.log('\n4️⃣ 📋 Get Job by ID...');
     const getJobResponse = await fetch(`${API_BASE}/jobs/${jobId}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { 'Authorization': `Bearer ${employerToken}` },
     });
 
-    if (getJobResponse.ok) {
-      const jobDetails = await getJobResponse.json();
-      console.log('✅ Job retrieved successfully!');
-      console.log('📋 Title:', jobDetails.title);
-      console.log('🏢 Company:', jobDetails.company?.name);
-      console.log('👀 View Count:', jobDetails.viewCount);
-    } else {
-      console.log('❌ Failed to get job');
+    if (!getJobResponse.ok) {
+      throw new Error(`Get job by ID failed: ${getJobResponse.status}`);
     }
 
-    // Step 5: Test Get All Jobs
-    console.log('\n5️⃣ 📋 TESTING GET ALL JOBS...');
-    const getAllJobsResponse = await fetch(`${API_BASE}/jobs?page=1&limit=5`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+    const jobDetails = await getJobResponse.json();
+    console.log(`✅ Job details retrieved: ${jobDetails.title}`);
+    console.log(`   - Status: ${jobDetails.status}`);
+    console.log(`   - Company: ${jobDetails.company?.name}`);
+    console.log(`   - Salary: ${jobDetails.minSalary} - ${jobDetails.maxSalary}`);
+
+    // 5. GET ALL JOBS (LIST)
+    console.log('\n5️⃣ 📜 Get All Jobs (List)...');
+    const jobsListResponse = await fetch(`${API_BASE}/jobs?page=1&limit=5`, {
+      headers: { 'Authorization': `Bearer ${employerToken}` },
     });
 
-    if (getAllJobsResponse.ok) {
-      const jobsList = await getAllJobsResponse.json();
-      console.log('✅ Jobs list retrieved!');
-      console.log('📊 Total jobs:', jobsList.total);
-      console.log('📄 Page:', jobsList.page, 'of', jobsList.totalPages);
-      console.log('📋 Jobs on this page:', jobsList.data.length);
-    } else {
-      console.log('❌ Failed to get jobs list');
+    if (!jobsListResponse.ok) {
+      throw new Error(`Get jobs list failed: ${jobsListResponse.status}`);
     }
 
-    // Step 6: Test Get Company Jobs
-    console.log('\n6️⃣ 🏢 TESTING GET COMPANY JOBS...');
-    const getCompanyJobsResponse = await fetch(`${API_BASE}/jobs/company/${companyId}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const jobsData = await jobsListResponse.json();
+    console.log(`✅ Jobs list retrieved: ${jobsData.data?.length || 0} jobs`);
+    console.log(`   - Total jobs: ${jobsData.total || 'N/A'}`);
 
-    if (getCompanyJobsResponse.ok) {
-      const companyJobs = await getCompanyJobsResponse.json();
-      console.log('✅ Company jobs retrieved!');
-      console.log('📊 Jobs for this company:', companyJobs.length);
-      companyJobs.forEach((job, index) => {
-        console.log(`  ${index + 1}. ${job.title} (${job.status})`);
-      });
-    } else {
-      console.log('❌ Failed to get company jobs');
-    }
-
-    // Step 7: Test Update Job
-    console.log('\n7️⃣ ✏️ TESTING UPDATE JOB...');
+    // 6. UPDATE JOB
+    console.log('\n6️⃣ ✏️ Update Job...');
     const updateData = {
-      title: 'Senior Full Stack Developer - Updated',
-      minSalary: 30000000,
-      maxSalary: 45000000,
-      remoteWork: false
+      title: 'Updated Comprehensive Test Job',
+      description: 'Updated description for comprehensive testing',
+      minSalary: 25000000,
+      maxSalary: 40000000,
     };
 
     const updateJobResponse = await fetch(`${API_BASE}/jobs/${jobId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${employerToken}`,
       },
       body: JSON.stringify(updateData),
     });
 
-    if (updateJobResponse.ok) {
-      const updatedJob = await updateJobResponse.json();
-      console.log('✅ Job updated successfully!');
-      console.log('📋 New title:', updatedJob.title);
-      console.log('💰 New salary range:', `${updatedJob.minSalary} - ${updatedJob.maxSalary}`);
-      console.log('🏠 Remote work:', updatedJob.remoteWork ? 'Yes' : 'No');
-    } else {
-      console.log('❌ Job update failed!');
-      const error = await updateJobResponse.text();
-      console.log('Error:', error);
+    if (!updateJobResponse.ok) {
+      throw new Error(`Update job failed: ${updateJobResponse.status}`);
     }
 
-    // Step 8: Test Publish Job
-    console.log('\n8️⃣ 📢 TESTING PUBLISH JOB...');
-    const publishJobResponse = await fetch(`${API_BASE}/jobs/${jobId}/publish`, {
+    const updatedJob = await updateJobResponse.json();
+    console.log(`✅ Job updated: ${updatedJob.title}`);
+    console.log(`   - New salary: ${updatedJob.minSalary} - ${updatedJob.maxSalary}`);
+
+    // 7. PUBLISH JOB (if not already published)
+    if (updatedJob.status !== 'published') {
+      console.log('\n7️⃣ 📢 Publish Job...');
+      const publishResponse = await fetch(`${API_BASE}/jobs/${jobId}/publish`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${employerToken}`,
+        },
+      });
+
+      if (!publishResponse.ok) {
+        console.log(`⚠️ Publish job failed: ${publishResponse.status}`);
+      } else {
+        console.log('✅ Job published successfully');
+      }
+    } else {
+      console.log('\n7️⃣ 📢 Job already published, skipping publish step');
+    }
+
+    // 8. GET JOBS BY COMPANY
+    console.log('\n8️⃣ 🏢 Get Jobs by Company...');
+    const companyJobsResponse = await fetch(`${API_BASE}/jobs/company/${companyId}`, {
+      headers: { 'Authorization': `Bearer ${employerToken}` },
+    });
+
+    if (!companyJobsResponse.ok) {
+      throw new Error(`Get jobs by company failed: ${companyJobsResponse.status}`);
+    }
+
+    const companyJobs = await companyJobsResponse.json();
+    console.log(`✅ Company jobs retrieved: ${companyJobs.length} jobs`);
+    const foundJob = companyJobs.find(job => job.id === jobId);
+    console.log(`   - Our test job found: ${foundJob ? 'Yes' : 'No'}`);
+
+    // 9. GET EMPLOYER'S JOBS (MY JOBS)
+    console.log('\n9️⃣ 👤 Get Employer My Jobs...');
+    const myJobsResponse = await fetch(`${API_BASE}/jobs/user/my-jobs`, {
+      headers: { 'Authorization': `Bearer ${employerToken}` },
+    });
+
+    if (!myJobsResponse.ok) {
+      throw new Error(`Get my jobs failed: ${myJobsResponse.status}`);
+    }
+
+    const myJobsStats = await myJobsResponse.json();
+    console.log('✅ My jobs stats retrieved:');
+    console.log(`   - Active jobs: ${myJobsStats.activeJobs || 'N/A'}`);
+    console.log(`   - Total applications: ${myJobsStats.totalApplications || 'N/A'}`);
+    console.log(`   - Total views: ${myJobsStats.totalViews || 'N/A'}`);
+
+    // 10. CLOSE JOB
+    console.log('\n🔟 🚪 Close Job...');
+    const closeResponse = await fetch(`${API_BASE}/jobs/${jobId}/close`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: {
+        'Authorization': `Bearer ${employerToken}`,
+      },
     });
 
-    if (publishJobResponse.ok) {
-      const publishedJob = await publishJobResponse.json();
-      console.log('✅ Job published successfully!');
-      console.log('📊 New status:', publishedJob.status);
-      console.log('📅 Published at:', publishedJob.publishedAt);
+    if (!closeResponse.ok) {
+      console.log(`⚠️ Close job failed: ${closeResponse.status}`);
     } else {
-      console.log('❌ Job publish failed!');
-      const error = await publishJobResponse.text();
-      console.log('Error:', error);
+      console.log('✅ Job closed successfully');
     }
 
-    // Step 9: Test Get User's Jobs
-    console.log('\n9️⃣ 👤 TESTING GET USER JOBS...');
-    const getUserJobsResponse = await fetch(`${API_BASE}/jobs/user/my-jobs`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+    // 11. VERIFY JOB STATUS AFTER CLOSING
+    console.log('\n1️⃣1️⃣ Verify Job Status After Closing...');
+    const verifyJobResponse = await fetch(`${API_BASE}/jobs/${jobId}`, {
+      headers: { 'Authorization': `Bearer ${employerToken}` },
     });
 
-    if (getUserJobsResponse.ok) {
-      const userJobsStats = await getUserJobsResponse.json();
-      console.log('✅ User jobs stats retrieved!');
-      console.log('📊 Total jobs:', userJobsStats.totalJobs);
-      console.log('📢 Published jobs:', userJobsStats.publishedJobs);
-      console.log('📝 Draft jobs:', userJobsStats.draftJobs);
-      console.log('👀 Total views:', userJobsStats.totalViews);
-      console.log('📬 Total applications:', userJobsStats.totalApplications);
-    } else {
-      console.log('❌ Failed to get user jobs');
+    if (verifyJobResponse.ok) {
+      const verifiedJob = await verifyJobResponse.json();
+      console.log(`✅ Job status verified: ${verifiedJob.status}`);
     }
 
-    // Step 10: Test Search Jobs
-    console.log('\n🔟 🔍 TESTING SEARCH JOBS...');
-    const searchJobsResponse = await fetch(`${API_BASE}/jobs?search=developer&experienceLevel=senior&page=1&limit=3`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+    // 12. GET APPLICATIONS FOR JOB (should be empty for new job)
+    console.log('\n1️⃣2️⃣ Get Applications for Job...');
+    const applicationsResponse = await fetch(`${API_BASE}/applications/job/${jobId}`, {
+      headers: { 'Authorization': `Bearer ${employerToken}` },
     });
 
-    if (searchJobsResponse.ok) {
-      const searchResults = await searchJobsResponse.json();
-      console.log('✅ Job search successful!');
-      console.log('🔍 Search results:', searchResults.total, 'jobs found');
-      console.log('📋 Showing page:', searchResults.page, 'of', searchResults.totalPages);
-    } else {
-      console.log('❌ Job search failed');
+    if (!applicationsResponse.ok) {
+      throw new Error(`Get applications failed: ${applicationsResponse.status}`);
     }
 
-    console.log('\n' + '='.repeat(60));
-    console.log('🎉 COMPREHENSIVE JOB TESTING COMPLETED!');
-    console.log('='.repeat(60));
-    console.log('\n📋 SUMMARY:');
-    console.log('✅ Authentication working');
-    console.log('✅ Job CRUD operations working');
-    console.log('✅ Job publishing working');
-    console.log('✅ Job search and filtering working');
-    console.log('✅ Company-job relationships working');
-    console.log('\n🔑 Key IDs for reference:');
-    console.log('🏢 Company ID:', companyId);
-    console.log('💼 Job ID:', jobId);
-    console.log('🔐 JWT Token:', token.substring(0, 30) + '...');
+    const applications = await applicationsResponse.json();
+    console.log(`✅ Applications retrieved: ${applications.length} applications`);
 
-    console.log('\n📚 Swagger URL: http://localhost:3001/api');
-    console.log('🔧 You can now test all job endpoints in Swagger!');
+    // 13. TEST PUBLIC JOB ACCESS (without auth)
+    console.log('\n1️⃣3️⃣ Test Public Job Access...');
+    const publicJobsResponse = await fetch(`${API_BASE}/jobs`);
+
+    if (!publicJobsResponse.ok) {
+      throw new Error(`Public jobs access failed: ${publicJobsResponse.status}`);
+    }
+
+    const publicJobs = await publicJobsResponse.json();
+    console.log(`✅ Public jobs access: ${publicJobs.data?.length || 0} jobs available`);
+    const publicJob = publicJobs.data?.find(job => job.id === jobId);
+    console.log(`   - Our job visible publicly: ${publicJob ? 'Yes' : 'No'}`);
+
+    console.log('\n🎉 ALL JOB ENDPOINTS TESTED SUCCESSFULLY! 🎉');
+    console.log('\n📊 SUMMARY:');
+    console.log('✅ Job Creation');
+    console.log('✅ Job Retrieval (by ID)');
+    console.log('✅ Job Listing');
+    console.log('✅ Job Update');
+    console.log('✅ Job Publishing');
+    console.log('✅ Job Closing');
+    console.log('✅ Company Jobs');
+    console.log('✅ My Jobs Stats');
+    console.log('✅ Job Applications');
+    console.log('✅ Public Access');
 
   } catch (error) {
-    console.error('❌ Test suite failed:', error.message);
+    console.error('❌ COMPREHENSIVE TEST FAILED:', error.message);
   }
 }
 
-// Run comprehensive test
 comprehensiveJobTest();

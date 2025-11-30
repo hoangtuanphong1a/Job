@@ -18,6 +18,7 @@ import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../common/entities/notification.entity';
+import { HRCompanyRelationshipService } from '../hr-company-relationship/hr-company-relationship.service';
 
 @Injectable()
 export class ApplicationsService {
@@ -28,7 +29,10 @@ export class ApplicationsService {
     private jobRepository: Repository<Job>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(JobSeekerProfile)
+    private jobSeekerProfileRepository: Repository<JobSeekerProfile>,
     private notificationsService: NotificationsService,
+    private hrCompanyRelationshipService: HRCompanyRelationshipService,
   ) {}
 
   async create(
@@ -51,17 +55,41 @@ export class ApplicationsService {
       throw new BadRequestException('Job is not available for applications');
     }
 
-    // Get job seeker profile for the user
-    const jobSeekerProfile = await this.userRepository
+    // Get or create job seeker profile for the user
+    let jobSeekerProfile = await this.userRepository
       .findOne({
         where: { id: userId },
         relations: ['jobSeekerProfiles'],
       })
       .then((user) => user?.jobSeekerProfiles?.[0]);
 
+    // If no profile exists, create a basic one automatically
     if (!jobSeekerProfile) {
-      throw new NotFoundException(
-        'Job seeker profile not found. Please complete your profile first.',
+      console.log(
+        'No job seeker profile found, creating a basic profile automatically...',
+      );
+
+      // Get user details
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Create a basic job seeker profile
+      const newProfile = this.jobSeekerProfileRepository.create({
+        userId: userId,
+        fullName:
+          `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        email: user.email,
+        phone: user.phone || '',
+        profileCompletion: 20, // Basic completion percentage
+        lastUpdatedAt: new Date(),
+      });
+
+      jobSeekerProfile = await this.jobSeekerProfileRepository.save(newProfile);
+      console.log(
+        '✅ Basic job seeker profile created automatically:',
+        jobSeekerProfile.id,
       );
     }
 
@@ -88,19 +116,36 @@ export class ApplicationsService {
     // Increment application count for the job
     await this.jobRepository.increment({ id: jobId }, 'applicationCount', 1);
 
-    // Send notification to HR about new application
+    // Send notification to all HR users and company owner about new application
     try {
-      await this.notificationsService.create(
-        job.company.ownerId,
-        NotificationType.APPLICATION_RECEIVED,
-        'Đơn ứng tuyển mới',
-        `${jobSeekerProfile.fullName || 'Ứng viên'} đã ứng tuyển vị trí ${job.title} tại công ty ${job.company.name}`,
-        {
-          relatedEntityId: savedApplication.id,
-          relatedEntityType: 'application',
-          priority: 3,
-        },
+      // Get all HR users associated with the company
+      const hrRelationships =
+        await this.hrCompanyRelationshipService.getHRForCompany(job.company.id);
+      const hrUserIds = hrRelationships.map(
+        (relationship) => relationship.hrUserId,
       );
+
+      // Add company owner to the list if not already included
+      if (!hrUserIds.includes(job.company.ownerId)) {
+        hrUserIds.push(job.company.ownerId);
+      }
+
+      // Send notification to all HR users and company owner
+      const notificationPromises = hrUserIds.map((hrUserId) =>
+        this.notificationsService.create(
+          hrUserId,
+          NotificationType.APPLICATION_RECEIVED,
+          'Đơn ứng tuyển mới',
+          `${jobSeekerProfile.fullName || 'Ứng viên'} đã ứng tuyển vị trí ${job.title} tại công ty ${job.company.name}`,
+          {
+            relatedEntityId: savedApplication.id,
+            relatedEntityType: 'application',
+            priority: 3,
+          },
+        ),
+      );
+
+      await Promise.all(notificationPromises);
     } catch (error) {
       console.error('Failed to send notification for new application:', error);
       // Don't fail the application creation if notification fails

@@ -23,19 +23,23 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{email?: string; password?: string; general?: string}>({});
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    general?: string;
+  }>({});
 
   const validateForm = () => {
-    const newErrors: {email?: string; password?: string} = {};
+    const newErrors: { email?: string; password?: string } = {};
 
     if (!email.trim()) {
-      newErrors.email = 'Email không được để trống';
+      newErrors.email = "Email không được để trống";
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email không hợp lệ';
+      newErrors.email = "Email không hợp lệ";
     }
 
     if (!password.trim()) {
-      newErrors.password = 'Mật khẩu không được để trống';
+      newErrors.password = "Mật khẩu không được để trống";
     }
 
     setErrors(newErrors);
@@ -43,16 +47,17 @@ export function LoginForm() {
   };
 
   const parseBackendErrors = (message: string) => {
-    const errorMap: {email?: string; password?: string; general?: string} = {};
+    const errorMap: { email?: string; password?: string; general?: string } =
+      {};
 
-    if (message.includes('email should not be empty')) {
-      errorMap.email = 'Email không được để trống';
+    if (message.includes("email should not be empty")) {
+      errorMap.email = "Email không được để trống";
     }
-    if (message.includes('email must be an email')) {
-      errorMap.email = 'Email không hợp lệ';
+    if (message.includes("email must be an email")) {
+      errorMap.email = "Email không hợp lệ";
     }
-    if (message.includes('password should not be empty')) {
-      errorMap.password = 'Mật khẩu không được để trống';
+    if (message.includes("password should not be empty")) {
+      errorMap.password = "Mật khẩu không được để trống";
     }
 
     // If no specific errors were parsed, show general error
@@ -77,22 +82,29 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-        }),
-      });
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+        }/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
         // Parse backend validation errors
-        const backendErrors = parseBackendErrors(data.message || 'Đăng nhập thất bại');
+        const backendErrors = parseBackendErrors(
+          data.message || "Đăng nhập thất bại"
+        );
         setErrors(backendErrors);
 
         // If it's a general error, show alert
@@ -103,36 +115,35 @@ export function LoginForm() {
       }
 
       // Store access token
-      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem("access_token", data.access_token);
 
       // Store user info if needed
       if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem("user", JSON.stringify(data.user));
       }
 
       // Dispatch custom event to update header
-      window.dispatchEvent(new CustomEvent('userLogin'));
+      window.dispatchEvent(new CustomEvent("userLogin"));
 
       // Redirect based on user role with proper priority
       // Priority: admin > hr > employer > job_seeker
       const userRoles = data.user?.roles || [];
 
-      if (userRoles.includes('admin')) {
-        router.push('/dashboard/admin');
-      } else if (userRoles.includes('hr')) {
-        router.push('/dashboard/hr');
-      } else if (userRoles.includes('employer')) {
-        router.push('/dashboard/employer');
-      } else if (userRoles.includes('job_seeker')) {
-        router.push('/jobs');
+      if (userRoles.includes("admin")) {
+        router.push("/dashboard/admin");
+      } else if (userRoles.includes("hr")) {
+        router.push("/dashboard/hr");
+      } else if (userRoles.includes("employer")) {
+        router.push("/dashboard/employer");
+      } else if (userRoles.includes("job_seeker")) {
+        router.push("/jobs");
       } else {
         // Default fallback for any other roles
-        router.push('/jobs');
+        router.push("/jobs");
       }
-
     } catch (error) {
-      console.error('Login failed:', error);
-      setErrors({ general: 'Có lỗi xảy ra. Vui lòng thử lại.' });
+      console.error("Login failed:", error);
+      setErrors({ general: "Có lỗi xảy ra. Vui lòng thử lại." });
     } finally {
       setIsLoading(false);
     }
@@ -140,17 +151,16 @@ export function LoginForm() {
 
   const handleGoogleLogin = async () => {
     try {
-      console.log('Google login attempt');
+      console.log("Google login attempt");
 
       // TODO: Implement Google OAuth with real client ID
       // For demo purposes, simulate successful login
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // On success, redirect to jobs page for candidates
-      router.push('/jobs');
-
+      router.push("/jobs");
     } catch (error) {
-      console.error('Google login failed:', error);
+      console.error("Google login failed:", error);
       // TODO: Show error message
     }
   };
@@ -241,8 +251,9 @@ export function LoginForm() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="text-xl text-gray-700 mb-12 leading-relaxed"
             >
-              Tham gia cùng hàng nghìn chuyên gia và nhà tuyển dụng tin tưởng nền tảng của chúng tôi để
-              tìm việc mơ ước hoặc tìm kiếm nhân tài xuất sắc.
+              Tham gia cùng hàng nghìn chuyên gia và nhà tuyển dụng tin tưởng
+              nền tảng của chúng tôi để tìm việc mơ ước hoặc tìm kiếm nhân tài
+              xuất sắc.
             </motion.p>
 
             {/* Language Selector */}
@@ -253,7 +264,9 @@ export function LoginForm() {
               className="flex items-center space-x-2 mb-8"
             >
               <Globe className="w-5 h-5 text-gray-800" />
-              <span className="text-gray-800 text-sm font-medium">Tiếng Việt</span>
+              <span className="text-gray-800 text-sm font-medium">
+                Tiếng Việt
+              </span>
               <ChevronDown className="w-4 h-4 text-gray-600" />
             </motion.div>
 
@@ -316,9 +329,7 @@ export function LoginForm() {
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
                   Đăng nhập
                 </h2>
-                <p className="text-gray-600">
-                  Chào mừng bạn trở lại
-                </p>
+                <p className="text-gray-600">Chào mừng bạn trở lại</p>
               </motion.div>
 
               {/* Social Login Buttons */}
@@ -398,8 +409,8 @@ export function LoginForm() {
                       onChange={(e) => setEmail(e.target.value)}
                       className={`pl-10 h-12 border-2 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-orange-500/20 ${
                         errors.email
-                          ? 'border-red-500 focus:border-red-500'
-                          : 'border-gray-200 focus:border-orange-500'
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-gray-200 focus:border-orange-500"
                       }`}
                     />
                   </div>
@@ -419,8 +430,8 @@ export function LoginForm() {
                       onChange={(e) => setPassword(e.target.value)}
                       className={`pl-10 pr-10 h-12 border-2 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-orange-500/20 ${
                         errors.password
-                          ? 'border-red-500 focus:border-red-500'
-                          : 'border-gray-200 focus:border-orange-500'
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-gray-200 focus:border-orange-500"
                       }`}
                     />
                     <button
@@ -436,7 +447,9 @@ export function LoginForm() {
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="text-red-500 text-sm ml-1">{errors.password}</p>
+                    <p className="text-red-500 text-sm ml-1">
+                      {errors.password}
+                    </p>
                   )}
                 </div>
 
@@ -476,14 +489,14 @@ export function LoginForm() {
                     disabled={isLoading}
                     className="w-full h-12 bg-[#f26b38] hover:bg-[#e05a27] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                    {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
                   </Button>
                 </motion.div>
 
                 {/* Sign Up Link */}
                 <div className="text-center">
                   <button
-                    onClick={() => router.push('/auth/register')}
+                    onClick={() => router.push("/auth/register")}
                     className="text-orange-500 hover:underline font-medium text-sm"
                   >
                     Chưa có tài khoản? Đăng ký ngay

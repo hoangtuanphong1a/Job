@@ -36,7 +36,7 @@ export class JobsController {
 
   @Post()
   @UseGuards(JwtGuard, RolesGuard)
-  @RequirePermissions(Permission.POST_JOBS)
+  @Roles(RoleName.EMPLOYER, RoleName.HR)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create a new job posting' })
   @ApiResponse({
@@ -53,8 +53,6 @@ export class JobsController {
   }
 
   @Get()
-  @UseGuards(JwtGuard)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Get all published jobs with filtering and pagination',
   })
@@ -76,7 +74,7 @@ export class JobsController {
     description: 'Jobs retrieved successfully',
   })
   async findAll(@Query() query: any, @Request() req) {
-    const userId = req.user?.id;
+    const userId = req.user?.id; // Optional - for authenticated users
     return this.jobsService.findAll(query, userId);
   }
 
@@ -88,8 +86,9 @@ export class JobsController {
     description: 'Job retrieved successfully',
   })
   @ApiResponse({ status: 404, description: 'Job not found' })
-  async findOne(@Param('id') id: string) {
-    return this.jobsService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    const userId = req.user?.id; // Optional - for authenticated users
+    return this.jobsService.findOne(id, userId);
   }
 
   @Put(':id')

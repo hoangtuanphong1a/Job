@@ -182,9 +182,9 @@ REMOTE_EOF
     post {
         success {
             echo "🎉 Pipeline hoàn tất thành công!"
-            echo "📱 FRONTEND: http://${SERVER_HOST}:3005"
-            echo "🔧 BACKEND HEALTH: http://${SERVER_HOST}:3004/health"
-            echo "📚 SWAGGER DOCS: http://${SERVER_HOST}:3004/docs"
+            echo "📱 FRONTEND: http://${SERVER_HOST}:3000"
+            echo "🔧 BACKEND HEALTH: http://${SERVER_HOST}:3001/health"
+            echo "📚 SWAGGER DOCS: http://${SERVER_HOST}:3001/api"
         }
         failure {
             echo "❌ Pipeline thất bại, vui lòng kiểm tra log ở stage bị lỗi."

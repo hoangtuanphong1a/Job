@@ -8,6 +8,7 @@ import { Job } from '../common/entities/job.entity';
 import { JobSeekerProfile } from '../common/entities/job-seeker-profile.entity';
 import { User } from '../common/entities/user.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { HRCompanyRelationshipModule } from '../hr-company-relationship/hr-company-relationship.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       User,
     ]),
     NotificationsModule,
+    HRCompanyRelationshipModule,
   ],
   controllers: [ApplicationsController],
   providers: [ApplicationsService],

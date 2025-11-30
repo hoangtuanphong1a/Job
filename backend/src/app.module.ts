@@ -25,6 +25,8 @@ import { UploadModule } from './modules/upload/upload.module';
 import { SkillsModule } from './modules/skills/skills.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { EmployerModule } from './modules/employer/employer.module';
+import { HRModule } from './modules/hr/hr.module';
+import { HRCompanyRelationshipModule } from './modules/hr-company-relationship/hr-company-relationship.module';
 import { User } from './modules/common/entities/user.entity';
 import { Role } from './modules/common/entities/role.entity';
 import { UserRole } from './modules/common/entities/user-role.entity';
@@ -48,7 +50,7 @@ import { RolesGuard } from './modules/common/guards/roles.guard';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       entities: [join(__dirname, '**', '*.entity{.ts,.js}')],
-      synchronize: false, // Temporarily enabled for development
+      synchronize: false, // Disabled for production stability
       logging: process.env.NODE_ENV === 'development',
 
       // Connection pooling configuration
@@ -130,6 +132,8 @@ import { RolesGuard } from './modules/common/guards/roles.guard';
     BlogModule,
     AdminModule,
     EmployerModule,
+    HRModule,
+    HRCompanyRelationshipModule,
   ],
   controllers: [AppController],
   providers: [AppService],

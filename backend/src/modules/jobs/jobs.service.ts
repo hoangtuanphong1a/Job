@@ -15,6 +15,7 @@ import { UpdateJobDto } from './dto/update-job.dto';
 import { Skill } from '../common/entities/skill.entity';
 import { JobTag } from '../common/entities/job-tag.entity';
 import { JobCategory } from '../common/entities/job-category.entity';
+import { HRService } from '../hr/hr.service';
 
 @Injectable()
 export class JobsService {
@@ -31,9 +32,15 @@ export class JobsService {
     private jobTagRepository: Repository<JobTag>,
     @InjectRepository(JobCategory)
     private jobCategoryRepository: Repository<JobCategory>,
+    private hrService: HRService,
   ) {}
 
   async create(createJobDto: CreateJobDto, userId: string): Promise<Job> {
+    console.log('🔄 Creating job with data:', {
+      userId,
+      createJobDto: { ...createJobDto, description: createJobDto.description?.substring(0, 50) + '...' }
+    });
+
     const { companyId, skillIds, tagIds, expiresAt, categoryId, ...jobData } =
       createJobDto;
 
@@ -43,15 +50,26 @@ export class JobsService {
     });
 
     if (!company) {
+      console.error('❌ Company not found:', companyId);
       throw new NotFoundException('Company not found');
     }
 
-    // Check if user owns the company or is an employer of the company
-    if (company.ownerId !== userId) {
+    console.log('✅ Company found:', company.name);
+
+    // Check if user owns the company OR has HR access to the company
+    const userCompanies = await this.hrService.getUserCompanies(userId);
+    console.log('📋 User companies:', userCompanies.map(c => ({ id: c.id, name: c.name })));
+
+    const hasAccess = userCompanies.some((c) => c.id === companyId);
+
+    if (!hasAccess) {
+      console.error('❌ User does not have access to company:', companyId);
       throw new ForbiddenException(
-        'You can only create jobs for your own companies',
+        'You can only create jobs for companies you have access to',
       );
     }
+
+    console.log('✅ User has access to company');
 
     // Verify category exists if provided
     let category: JobCategory | undefined = undefined;
@@ -85,35 +103,52 @@ export class JobsService {
     });
 
     // Save job first to get the ID
+    console.log('💾 Saving job to database...');
     const savedJob = await this.jobRepository.save(job);
+    console.log('✅ Job saved with ID:', savedJob.id);
 
     // Handle skills relationships
     if (skillIds && skillIds.length > 0) {
+      console.log('🔗 Processing skills:', skillIds.length, 'skills');
       const skills = await this.skillRepository.find({
         where: { id: In(skillIds) },
       });
       savedJob.skills = skills;
       await this.jobRepository.save(savedJob);
+      console.log('✅ Skills attached:', skills.length);
     }
 
     // Handle tags relationships
     if (tagIds && tagIds.length > 0) {
+      console.log('🏷️ Processing tags:', tagIds.length, 'tags');
       const tags = await this.jobTagRepository.find({
         where: { id: In(tagIds) },
       });
       savedJob.tags = tags;
       await this.jobRepository.save(savedJob);
+      console.log('✅ Tags attached:', tags.length);
     }
 
     // Return the job without incrementing view count for newly created jobs
+    console.log('📤 Fetching final job data...');
     const createdJob = await this.jobRepository.findOne({
       where: { id: savedJob.id },
       relations: ['company', 'postedBy', 'category', 'skills', 'tags'],
     });
 
     if (!createdJob) {
+      console.error('❌ Job not found after creation');
       throw new NotFoundException('Job not found after creation');
     }
+
+    console.log('🎉 Job creation completed successfully:', {
+      id: createdJob.id,
+      title: createdJob.title,
+      company: createdJob.company.name,
+      status: createdJob.status,
+      skills: createdJob.skills?.length || 0,
+      tags: createdJob.tags?.length || 0,
+    });
 
     return createdJob;
   }
@@ -269,7 +304,7 @@ export class JobsService {
     };
   }
 
-  async findOne(id: string): Promise<Job> {
+  async findOne(id: string, userId?: string): Promise<Job> {
     const job = await this.jobRepository.findOne({
       where: { id },
       relations: ['company', 'postedBy', 'category', 'skills', 'tags'],
@@ -279,8 +314,10 @@ export class JobsService {
       throw new NotFoundException('Job not found');
     }
 
-    // Increment view count
-    await this.incrementViewCount(id);
+    // Only increment view count for anonymous users or when not viewing own job
+    if (!userId || job.company.ownerId !== userId) {
+      await this.incrementViewCount(id);
+    }
 
     return job;
   }

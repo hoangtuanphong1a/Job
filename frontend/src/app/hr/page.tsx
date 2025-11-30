@@ -25,7 +25,7 @@ import {
   Building,
   LogOut,
   Settings,
-  MessageSquare
+  MessageSquare,
 } from "lucide-react";
 
 interface HRStats {
@@ -44,7 +44,14 @@ interface RecentApplication {
   candidateName: string;
   jobTitle: string;
   appliedDate: string;
-  status: 'pending' | 'reviewing' | 'shortlisted' | 'interviewed' | 'offered' | 'hired' | 'rejected';
+  status:
+    | "pending"
+    | "reviewing"
+    | "shortlisted"
+    | "interviewed"
+    | "offered"
+    | "hired"
+    | "rejected";
   avatar?: string;
 }
 
@@ -54,7 +61,7 @@ interface ActiveJob {
   postedDate: string;
   applications: number;
   views: number;
-  status: 'active' | 'expired' | 'draft';
+  status: "active" | "expired" | "draft";
 }
 
 interface UpcomingInterview {
@@ -62,7 +69,7 @@ interface UpcomingInterview {
   candidateName: string;
   jobTitle: string;
   interviewDate: string;
-  interviewType: 'phone' | 'video' | 'in-person';
+  interviewType: "phone" | "video" | "in-person";
   interviewer: string;
 }
 
@@ -76,11 +83,15 @@ export default function HRDashboard() {
     hiresThisMonth: 0,
     responseRate: 0,
     avgTimeToHire: 0,
-    totalViews: 0
+    totalViews: 0,
   });
-  const [recentApplications, setRecentApplications] = useState<RecentApplication[]>([]);
+  const [recentApplications, setRecentApplications] = useState<
+    RecentApplication[]
+  >([]);
   const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
-  const [upcomingInterviews, setUpcomingInterviews] = useState<UpcomingInterview[]>([]);
+  const [upcomingInterviews, setUpcomingInterviews] = useState<
+    UpcomingInterview[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -89,15 +100,17 @@ export default function HRDashboard() {
 
   const fetchHRData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("access_token");
       if (!token) {
-        router.push('/auth/login');
+        router.push("/auth/login");
         return;
       }
 
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
       // Fetch HR dashboard stats
-      const statsResponse = await fetch('/api/hr/dashboard/stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const statsResponse = await fetch(`${apiUrl}/hr/dashboard/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (statsResponse.ok) {
@@ -105,122 +118,143 @@ export default function HRDashboard() {
         setStats(statsData);
       }
 
-      // Mock data for demonstration
+      // Fetch active jobs
+      const jobsResponse = await fetch(`${apiUrl}/hr/jobs?limit=3`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (jobsResponse.ok) {
+        const jobsData = await jobsResponse.json();
+        const formattedJobs = jobsData.data.map((job: any) => ({
+          id: job.id,
+          title: job.title,
+          postedDate: new Date(job.createdAt).toLocaleDateString("vi-VN"),
+          applications: job._count?.applications || 0, // This might need adjustment based on actual API response
+          views: job.viewCount || 0,
+          status: job.status === "published" ? "active" : "draft",
+        }));
+        setActiveJobs(formattedJobs);
+      }
+
+      // Fetch recent applications
+      const applicationsResponse = await fetch(
+        `${apiUrl}/hr/applications?limit=4`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (applicationsResponse.ok) {
+        const applicationsData = await applicationsResponse.json();
+        const formattedApplications = applicationsData.data.map((app: any) => ({
+          id: app.id,
+          candidateName:
+            `${app.jobSeekerProfile?.user?.firstName || ""} ${
+              app.jobSeekerProfile?.user?.lastName || ""
+            }`.trim() || "Unknown",
+          jobTitle: app.job?.title || "Unknown Position",
+          appliedDate: new Date(app.createdAt).toLocaleDateString("vi-VN"),
+          status: app.status,
+        }));
+        setRecentApplications(formattedApplications);
+      }
+
+      // Fetch upcoming interviews
+      const interviewsResponse = await fetch(
+        `${apiUrl}/hr/interviews/upcoming`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (interviewsResponse.ok) {
+        const interviewsData = await interviewsResponse.json();
+        const formattedInterviews = interviewsData.map((interview: any) => ({
+          id: interview.id,
+          candidateName: interview.candidateName,
+          jobTitle: interview.jobTitle,
+          interviewDate: interview.interviewDate,
+          interviewType: "scheduled",
+          interviewer: interview.interviewer,
+        }));
+        setUpcomingInterviews(formattedInterviews);
+      }
+    } catch (error) {
+      console.error("Error fetching HR data:", error);
+      // Keep mock data as fallback for now
       setActiveJobs([
         {
-          id: '1',
-          title: 'Senior Frontend Developer',
-          postedDate: '2025-01-25',
+          id: "1",
+          title: "Senior Frontend Developer",
+          postedDate: "25/01/2025",
           applications: 24,
           views: 156,
-          status: 'active'
+          status: "active",
         },
         {
-          id: '2',
-          title: 'Product Manager',
-          postedDate: '2025-01-20',
+          id: "2",
+          title: "Product Manager",
+          postedDate: "20/01/2025",
           applications: 18,
           views: 89,
-          status: 'active'
+          status: "active",
         },
-        {
-          id: '3',
-          title: 'DevOps Engineer',
-          postedDate: '2025-01-22',
-          applications: 12,
-          views: 67,
-          status: 'active'
-        }
       ]);
 
       setRecentApplications([
         {
-          id: '1',
-          candidateName: 'Nguyễn Văn A',
-          jobTitle: 'Senior Frontend Developer',
-          appliedDate: '2025-01-28',
-          status: 'reviewing'
+          id: "1",
+          candidateName: "Nguyễn Văn A",
+          jobTitle: "Senior Frontend Developer",
+          appliedDate: "28/01/2025",
+          status: "reviewing",
         },
-        {
-          id: '2',
-          candidateName: 'Trần Thị B',
-          jobTitle: 'Product Manager',
-          appliedDate: '2025-01-27',
-          status: 'shortlisted'
-        },
-        {
-          id: '3',
-          candidateName: 'Lê Văn C',
-          jobTitle: 'DevOps Engineer',
-          appliedDate: '2025-01-26',
-          status: 'interviewed'
-        },
-        {
-          id: '4',
-          candidateName: 'Phạm Thị D',
-          jobTitle: 'Senior Frontend Developer',
-          appliedDate: '2025-01-25',
-          status: 'pending'
-        }
       ]);
 
-      setUpcomingInterviews([
-        {
-          id: '1',
-          candidateName: 'Trần Thị B',
-          jobTitle: 'Product Manager',
-          interviewDate: '2025-01-30 14:00',
-          interviewType: 'video',
-          interviewer: 'HR Manager'
-        },
-        {
-          id: '2',
-          candidateName: 'Lê Văn C',
-          jobTitle: 'DevOps Engineer',
-          interviewDate: '2025-01-31 10:00',
-          interviewType: 'phone',
-          interviewer: 'Tech Lead'
-        }
-      ]);
-
-    } catch (error) {
-      console.error('Error fetching HR data:', error);
+      setUpcomingInterviews([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    router.push("/");
   };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' },
-      reviewing: { label: 'Đang xem xét', color: 'bg-blue-100 text-blue-700' },
-      shortlisted: { label: 'Ứng viên tiềm năng', color: 'bg-purple-100 text-purple-700' },
-      interviewed: { label: 'Đã phỏng vấn', color: 'bg-indigo-100 text-indigo-700' },
-      offered: { label: 'Đã đề nghị', color: 'bg-green-100 text-green-700' },
-      hired: { label: 'Đã tuyển', color: 'bg-emerald-100 text-emerald-700' },
-      rejected: { label: 'Đã từ chối', color: 'bg-red-100 text-red-700' }
+      pending: { label: "Chờ xử lý", color: "bg-yellow-100 text-yellow-700" },
+      reviewing: { label: "Đang xem xét", color: "bg-blue-100 text-blue-700" },
+      shortlisted: {
+        label: "Ứng viên tiềm năng",
+        color: "bg-purple-100 text-purple-700",
+      },
+      interviewed: {
+        label: "Đã phỏng vấn",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      offered: { label: "Đã đề nghị", color: "bg-green-100 text-green-700" },
+      hired: { label: "Đã tuyển", color: "bg-emerald-100 text-emerald-700" },
+      rejected: { label: "Đã từ chối", color: "bg-red-100 text-red-700" },
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config =
+      statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
   const getInterviewTypeIcon = (type: string) => {
     switch (type) {
-      case 'phone':
-        return '📞';
-      case 'video':
-        return '📹';
-      case 'in-person':
-        return '🏢';
+      case "phone":
+        return "📞";
+      case "video":
+        return "📹";
+      case "in-person":
+        return "🏢";
       default:
-        return '📅';
+        return "📅";
     }
   };
 
@@ -251,7 +285,9 @@ export default function HRDashboard() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold">HR Dashboard</h1>
-              <p className="text-gray-600 mt-1">Quản lý tuyển dụng và theo dõi ứng viên của công ty.</p>
+              <p className="text-gray-600 mt-1">
+                Quản lý tuyển dụng và theo dõi ứng viên của công ty.
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <Link href="/dashboard/hr/jobs/post">
@@ -280,7 +316,9 @@ export default function HRDashboard() {
                 </div>
               </div>
               <div className="text-2xl font-bold mb-1">{stats.activeJobs}</div>
-              <div className="text-sm text-gray-600">Tin tuyển dụng đang hoạt động</div>
+              <div className="text-sm text-gray-600">
+                Tin tuyển dụng đang hoạt động
+              </div>
             </Card>
 
             <Card className="p-6">
@@ -289,7 +327,9 @@ export default function HRDashboard() {
                   <Users className="h-6 w-6 text-green-600" />
                 </div>
               </div>
-              <div className="text-2xl font-bold mb-1">{stats.totalApplications}</div>
+              <div className="text-2xl font-bold mb-1">
+                {stats.totalApplications}
+              </div>
               <div className="text-sm text-gray-600">Tổng đơn ứng tuyển</div>
               <div className="text-xs text-green-600 mt-1">+12 hôm nay</div>
             </Card>
@@ -300,7 +340,9 @@ export default function HRDashboard() {
                   <Eye className="h-6 w-6 text-purple-600" />
                 </div>
               </div>
-              <div className="text-2xl font-bold mb-1">{stats.totalViews.toLocaleString()}</div>
+              <div className="text-2xl font-bold mb-1">
+                {stats.totalViews.toLocaleString()}
+              </div>
               <div className="text-sm text-gray-600">Lượt xem tin</div>
             </Card>
 
@@ -310,8 +352,12 @@ export default function HRDashboard() {
                   <CheckCircle className="h-6 w-6 text-orange-600" />
                 </div>
               </div>
-              <div className="text-2xl font-bold mb-1">{stats.hiresThisMonth}</div>
-              <div className="text-sm text-gray-600">Đã tuyển dụng tháng này</div>
+              <div className="text-2xl font-bold mb-1">
+                {stats.hiresThisMonth}
+              </div>
+              <div className="text-sm text-gray-600">
+                Đã tuyển dụng tháng này
+              </div>
             </Card>
           </div>
 
@@ -320,7 +366,9 @@ export default function HRDashboard() {
             <div className="lg:col-span-2 space-y-8">
               {/* Management Actions */}
               <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-6">Quản lý tuyển dụng</h2>
+                <h2 className="text-xl font-semibold mb-6">
+                  Quản lý tuyển dụng
+                </h2>
                 <div className="grid md:grid-cols-2 gap-4">
                   <Link href="/dashboard/hr/jobs">
                     <Button
@@ -329,8 +377,12 @@ export default function HRDashboard() {
                     >
                       <Briefcase className="h-6 w-6" />
                       <div className="text-left">
-                        <div className="font-medium">Quản lý tin tuyển dụng</div>
-                        <div className="text-sm text-gray-600">Xem và chỉnh sửa các tin đăng</div>
+                        <div className="font-medium">
+                          Quản lý tin tuyển dụng
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          Xem và chỉnh sửa các tin đăng
+                        </div>
                       </div>
                     </Button>
                   </Link>
@@ -343,7 +395,9 @@ export default function HRDashboard() {
                       <FileText className="h-6 w-6" />
                       <div className="text-left">
                         <div className="font-medium">Đơn ứng tuyển</div>
-                        <div className="text-sm text-gray-600">Xem và xử lý đơn ứng tuyển</div>
+                        <div className="text-sm text-gray-600">
+                          Xem và xử lý đơn ứng tuyển
+                        </div>
                       </div>
                     </Button>
                   </Link>
@@ -356,7 +410,9 @@ export default function HRDashboard() {
                       <MessageSquare className="h-6 w-6" />
                       <div className="text-left">
                         <div className="font-medium">Lịch phỏng vấn</div>
-                        <div className="text-sm text-gray-600">Quản lý lịch phỏng vấn</div>
+                        <div className="text-sm text-gray-600">
+                          Quản lý lịch phỏng vấn
+                        </div>
                       </div>
                     </Button>
                   </Link>
@@ -369,7 +425,9 @@ export default function HRDashboard() {
                       <BarChart3 className="h-6 w-6" />
                       <div className="text-left">
                         <div className="font-medium">Báo cáo tuyển dụng</div>
-                        <div className="text-sm text-gray-600">Thống kê và báo cáo</div>
+                        <div className="text-sm text-gray-600">
+                          Thống kê và báo cáo
+                        </div>
                       </div>
                     </Button>
                   </Link>
@@ -379,16 +437,25 @@ export default function HRDashboard() {
               {/* Active Jobs */}
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold">Tin tuyển dụng đang hoạt động</h2>
+                  <h2 className="text-xl font-semibold">
+                    Tin tuyển dụng đang hoạt động
+                  </h2>
                   <Link href="/dashboard/hr/jobs">
-                    <Button variant="ghost" size="sm" className="text-[#f26b38]">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-[#f26b38]"
+                    >
                       Xem tất cả
                     </Button>
                   </Link>
                 </div>
                 <div className="space-y-4">
                   {activeJobs.map((job) => (
-                    <div key={job.id} className="p-4 border border-gray-200 rounded-lg hover:border-[#f26b38] transition-colors">
+                    <div
+                      key={job.id}
+                      className="p-4 border border-gray-200 rounded-lg hover:border-[#f26b38] transition-colors"
+                    >
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
                           <h3 className="font-medium mb-1">{job.title}</h3>
@@ -411,7 +478,11 @@ export default function HRDashboard() {
                           <Button size="sm" variant="outline">
                             Chỉnh sửa
                           </Button>
-                          <Button size="sm" variant="outline" className="border-[#f26b38] text-[#f26b38]">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-[#f26b38] text-[#f26b38]"
+                          >
                             Xem ứng viên
                           </Button>
                         </div>
@@ -432,14 +503,27 @@ export default function HRDashboard() {
                 </h3>
                 <div className="space-y-4">
                   {upcomingInterviews.map((interview) => (
-                    <div key={interview.id} className="p-3 bg-blue-50 rounded-lg">
+                    <div
+                      key={interview.id}
+                      className="p-3 bg-blue-50 rounded-lg"
+                    >
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">{getInterviewTypeIcon(interview.interviewType)}</span>
-                        <span className="font-medium text-sm">{interview.candidateName}</span>
+                        <span className="text-lg">
+                          {getInterviewTypeIcon(interview.interviewType)}
+                        </span>
+                        <span className="font-medium text-sm">
+                          {interview.candidateName}
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-1">{interview.jobTitle}</p>
-                      <p className="text-xs text-blue-600 font-medium">{interview.interviewDate}</p>
-                      <p className="text-xs text-gray-500">Người phỏng vấn: {interview.interviewer}</p>
+                      <p className="text-sm text-gray-600 mb-1">
+                        {interview.jobTitle}
+                      </p>
+                      <p className="text-xs text-blue-600 font-medium">
+                        {interview.interviewDate}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Người phỏng vấn: {interview.interviewer}
+                      </p>
                     </div>
                   ))}
                   {upcomingInterviews.length === 0 && (
@@ -459,27 +543,44 @@ export default function HRDashboard() {
                 </h3>
                 <div className="space-y-3">
                   {recentApplications.slice(0, 4).map((application) => (
-                    <div key={application.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:border-[#f26b38] transition-colors">
+                    <div
+                      key={application.id}
+                      className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:border-[#f26b38] transition-colors"
+                    >
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center flex-shrink-0">
                         {application.avatar ? (
-                          <img src={application.avatar} alt={application.candidateName} className="w-full h-full rounded-full object-cover" />
+                          <img
+                            src={application.avatar}
+                            alt={application.candidateName}
+                            className="w-full h-full rounded-full object-cover"
+                          />
                         ) : (
                           <Users className="h-5 w-5 text-[#f26b38]" />
                         )}
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-medium text-sm mb-1">{application.candidateName}</h4>
-                        <p className="text-xs text-gray-600 mb-1">{application.jobTitle}</p>
+                        <h4 className="font-medium text-sm mb-1">
+                          {application.candidateName}
+                        </h4>
+                        <p className="text-xs text-gray-600 mb-1">
+                          {application.jobTitle}
+                        </p>
                         <div className="flex items-center gap-2">
                           {getStatusBadge(application.status)}
-                          <span className="text-xs text-gray-500">{application.appliedDate}</span>
+                          <span className="text-xs text-gray-500">
+                            {application.appliedDate}
+                          </span>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
                 <Link href="/dashboard/hr/applications">
-                  <Button variant="ghost" size="sm" className="w-full mt-4 text-[#f26b38]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full mt-4 text-[#f26b38]"
+                  >
                     Xem tất cả ứng viên
                   </Button>
                 </Link>
@@ -492,23 +593,36 @@ export default function HRDashboard() {
                   <div>
                     <div className="flex items-center justify-between text-sm mb-2">
                       <span>Tỷ lệ phản hồi</span>
-                      <span className="text-[#f26b38] font-medium">{stats.responseRate}%</span>
+                      <span className="text-[#f26b38] font-medium">
+                        {stats.responseRate}%
+                      </span>
                     </div>
                     <Progress value={stats.responseRate} className="h-2" />
                   </div>
                   <div>
                     <div className="flex items-center justify-between text-sm mb-2">
                       <span>Thời gian tuyển trung bình</span>
-                      <span className="text-[#f26b38] font-medium">{stats.avgTimeToHire} ngày</span>
+                      <span className="text-[#f26b38] font-medium">
+                        {stats.avgTimeToHire} ngày
+                      </span>
                     </div>
-                    <Progress value={Math.min((stats.avgTimeToHire / 30) * 100, 100)} className="h-2" />
+                    <Progress
+                      value={Math.min((stats.avgTimeToHire / 30) * 100, 100)}
+                      className="h-2"
+                    />
                   </div>
                   <div className="pt-2 border-t">
                     <div className="flex items-center justify-between text-sm">
                       <span>Mục tiêu tháng này</span>
-                      <span className="text-green-600 font-medium">{stats.hiresThisMonth}/5 tuyển dụng</span>
+                      <span className="text-green-600 font-medium">
+                        {stats.hiresThisMonth}/5 tuyển dụng
+                      </span>
                     </div>
-                    <Progress value={(stats.hiresThisMonth / 5) * 100} className="h-2 mt-2 [&>div]:bg-green-600" />
+                    <Progress
+                      value={(stats.hiresThisMonth / 5) * 100}
+                      className="h-2 mt-2"
+                      style={{}}
+                    />
                   </div>
                 </div>
               </Card>
@@ -517,7 +631,9 @@ export default function HRDashboard() {
               <Card className="p-6 bg-gradient-to-br from-orange-50 to-red-50 border-[#f26b38]/20">
                 <div className="text-center">
                   <Target className="h-8 w-8 text-[#f26b38] mx-auto mb-3" />
-                  <h3 className="font-semibold mb-2">Mục tiêu tuyển dụng 2025</h3>
+                  <h3 className="font-semibold mb-2">
+                    Mục tiêu tuyển dụng 2025
+                  </h3>
                   <p className="text-sm text-gray-600 mb-4">
                     Tuyển dụng 50 nhân viên chất lượng cao
                   </p>
@@ -525,7 +641,9 @@ export default function HRDashboard() {
                     <div className="text-2xl font-bold text-[#f26b38] mb-1">
                       {stats.hiresThisMonth * 2} {/* Mock data */}
                     </div>
-                    <div className="text-xs text-gray-600">Đã tuyển (ước tính cả năm)</div>
+                    <div className="text-xs text-gray-600">
+                      Đã tuyển (ước tính cả năm)
+                    </div>
                   </div>
                 </div>
               </Card>

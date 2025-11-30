@@ -52,10 +52,11 @@ export default function CompaniesPage() {
 
   const fetchCompanies = async () => {
     try {
-      const response = await fetch('/api/companies');
+      const response = await fetch('/api/companies?limit=100'); // Get more companies
       if (response.ok) {
         const data = await response.json();
-        setCompanies(data);
+        // API returns { data: Company[], total, page, limit, totalPages }
+        setCompanies(data.data || []);
       }
     } catch (error) {
       console.error('Error fetching companies:', error);

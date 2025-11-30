@@ -192,16 +192,27 @@ export default function PostJobPage() {
     const loadingToast = toast.loading('Đang đăng tin tuyển dụng...');
 
     try {
+      console.log('🚀 Starting job posting process...');
       const jobData = await mapFormToJobData();
+      console.log('📝 Mapped job data:', jobData);
 
-      await jobService.createJob(jobData);
+      console.log('📡 Calling jobService.createJob()...');
+      const createdJob = await jobService.createJob(jobData);
+      console.log('✅ Job creation API call completed');
+      console.log('📋 Returned job data:', createdJob);
+      console.log('🆔 Job ID:', createdJob?.id);
+      console.log('📄 Job Title:', createdJob?.title);
+      console.log('🏢 Company:', createdJob?.company?.name);
+      console.log('📊 Job Status:', createdJob?.status);
 
       toast.dismiss(loadingToast);
 
       toast.success('Đăng tin tuyển dụng thành công!');
 
-      // Redirect to jobs page where the new job will be visible immediately
-      router.push('/jobs');
+      console.log('🔄 Redirecting to jobs page with refresh parameter...');
+      // Redirect to jobs page with a timestamp to force refresh
+      const timestamp = Date.now();
+      router.push(`/jobs?refresh=${timestamp}`);
     } catch (error: unknown) {
       console.error('Error posting job:', error);
       toast.dismiss(loadingToast);

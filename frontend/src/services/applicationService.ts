@@ -30,26 +30,26 @@ export interface Application {
 
 export class ApplicationService {
   static async createApplication(data: CreateApplicationDto): Promise<Application> {
-    const response = await api.post('/applications', data);
+    const response = await api.post('/job-applications', data);
     return response.data;
   }
 
   static async getMyApplications(): Promise<Application[]> {
-    const response = await api.get('/applications/user/my-applications');
+    const response = await api.get('/job-applications/user/my-applications');
     return response.data;
   }
 
   static async getApplicationStats(userId: string) {
-    const response = await api.get('/applications/user/my-stats');
+    const response = await api.get('/job-applications/user/my-stats');
     return response.data;
   }
 
   static async withdrawApplication(applicationId: string): Promise<void> {
-    await api.delete(`/applications/${applicationId}`);
+    await api.delete(`/job-applications/${applicationId}`);
   }
 
   static async getJobApplications(jobId: string): Promise<Application[]> {
-    const response = await api.get(`/applications/job/${jobId}`);
+    const response = await api.get(`/job-applications/job/${jobId}`);
     return response.data;
   }
 
@@ -58,10 +58,25 @@ export class ApplicationService {
     status: string,
     notes?: string
   ): Promise<Application> {
-    const response = await api.post(`/applications/${applicationId}/status`, {
+    const response = await api.put(`/job-applications/${applicationId}`, {
       status,
       notes,
     });
+    return response.data;
+  }
+
+  static async getApplications(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    jobId?: string;
+  }): Promise<{ data: Application[]; total: number; page: number; limit: number }> {
+    const response = await api.get('/job-applications', { params });
+    return response.data;
+  }
+
+  static async getApplication(id: string): Promise<Application> {
+    const response = await api.get(`/job-applications/${id}`);
     return response.data;
   }
 }

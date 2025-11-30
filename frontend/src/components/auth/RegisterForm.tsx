@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AuthService } from "@/services/authService";
 
 export function RegisterForm() {
   const [activeTab, setActiveTab] = useState("candidate");
@@ -193,22 +194,10 @@ export function RegisterForm() {
       const registerData = {
         email: formData.email,
         password: formData.password,
-        role: roleMapping[formType as keyof typeof roleMapping]
+        role: roleMapping[formType as keyof typeof roleMapping] as 'job_seeker' | 'employer' | 'hr'
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(registerData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Đăng ký thất bại');
-      }
+      const data = await AuthService.register(registerData);
 
       // Store access token
       localStorage.setItem('access_token', data.access_token);

@@ -4,7 +4,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.headers.get('authorization');
@@ -16,7 +16,8 @@ export async function POST(
       );
     }
 
-    const response = await fetch(`${API_BASE_URL}/companies/${params.id}/follow`, {
+    const resolvedParams = await params;
+    const response = await fetch(`${API_BASE_URL}/companies/${resolvedParams.id}/follow`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -3,106 +3,151 @@
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
-import { Bookmark, MapPin, DollarSign, Clock, Briefcase } from "lucide-react";
+import { Bookmark, MapPin, DollarSign, Clock, Briefcase, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-const jobs = [
-  {
-    id: 1,
-    title: "Senior Frontend Developer",
-    company: "Tech Solutions Vietnam",
-    location: "Hà Nội",
-    salary: "25-35 triệu",
-    type: "Full-time",
-    level: "Senior",
-    tags: ["ReactJS", "TypeScript", "TailwindCSS"],
-    posted: "2 giờ trước",
-    logo: "https://images.unsplash.com/photo-1629904888132-038af9df34ab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwY29tcGFueSUyMHdvcmtzcGFjZXxlbnwxfHx8fDE3NjQzMzk2NDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    featured: true,
-  },
-  {
-    id: 2,
-    title: "UI/UX Designer",
-    company: "Creative Studio",
-    location: "Hồ Chí Minh",
-    salary: "15-25 triệu",
-    type: "Full-time",
-    level: "Middle",
-    tags: ["Figma", "Adobe XD", "Sketch"],
-    posted: "5 giờ trước",
-    logo: "https://images.unsplash.com/photo-1760611656007-f767a8082758?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBvZmZpY2UlMjBtZWV0aW5nfGVufDF8fHx8MTc2NDI2MjExN3ww&ixlib=rb-4.1.0&q=80&w=1080",
-    featured: true,
-  },
-  {
-    id: 3,
-    title: "Backend Developer",
-    company: "FinTech Innovations",
-    location: "Đà Nẵng",
-    salary: "20-30 triệu",
-    type: "Full-time",
-    level: "Middle",
-    tags: ["NodeJS", "MongoDB", "AWS"],
-    posted: "1 ngày trước",
-    logo: "https://images.unsplash.com/photo-1624555130858-7ea5b8192c49?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFydHVwJTIwdGVhbSUyMHdvcmtpbmd8ZW58MXx8fHwxNzY0MjgyMzAyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-    featured: false,
-  },
-  {
-    id: 4,
-    title: "Product Manager",
-    company: "E-commerce Giant",
-    location: "Hà Nội",
-    salary: "30-45 triệu",
-    type: "Full-time",
-    level: "Senior",
-    tags: ["Agile", "Scrum", "Product Strategy"],
-    posted: "1 ngày trước",
-    logo: "https://images.unsplash.com/photo-1598520106830-8c45c2035460?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMGlubm92YXRpb258ZW58MXx8fHwxNzY0MjkzMTE4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    featured: true,
-  },
-  {
-    id: 5,
-    title: "Marketing Executive",
-    company: "Digital Agency Pro",
-    location: "Hồ Chí Minh",
-    salary: "12-18 triệu",
-    type: "Full-time",
-    level: "Junior",
-    tags: ["SEO", "Social Media", "Content"],
-    posted: "2 ngày trước",
-    logo: "https://images.unsplash.com/photo-1722149493669-30098ef78f9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBjYXJlZXJ8ZW58MXx8fHwxNzY0MzM5NjQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-    featured: false,
-  },
-  {
-    id: 6,
-    title: "Data Analyst",
-    company: "Analytics Corp",
-    location: "Remote",
-    salary: "18-28 triệu",
-    type: "Remote",
-    level: "Middle",
-    tags: ["Python", "SQL", "Tableau"],
-    posted: "3 ngày trước",
-    logo: "https://images.unsplash.com/photo-1589979034086-5885b60c8f59?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHByb2Zlc3Npb25hbCUyMG9mZmljZXxlbnwxfHx8fDE3NjQzMzA3MTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    featured: false,
-  },
-];
+import { useState, useEffect } from "react";
+import { jobService, Job } from "@/services/jobService";
+import { SavedJobsService } from "@/services/savedJobsService";
 
 export function FeaturedJobs() {
   const router = useRouter();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleApply = (jobId: number) => {
-    router.push(`/jobs/jobdetail?id=${jobId}`);
+  useEffect(() => {
+    fetchFeaturedJobs();
+    loadSavedJobs();
+  }, []);
+
+  const fetchFeaturedJobs = async () => {
+    try {
+      setIsLoading(true);
+      // Get featured jobs (recent published jobs with high view count)
+      const response = await jobService.getJobs({
+        page: 1,
+        limit: 6,
+        status: 'published'
+      });
+      setJobs(response.data || []);
+    } catch (error) {
+      console.error('Error fetching featured jobs:', error);
+      setJobs([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSaveJob = (jobId: number) => {
-    // For now, navigate to a placeholder saved jobs page
-    // In a real app, this would save the job and navigate to saved jobs
-    router.push('/dashboard/candidate?tab=saved-jobs');
+  const loadSavedJobs = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      const response = await SavedJobsService.getSavedJobs({ page: 1, limit: 100 });
+      if (response && response.data && Array.isArray(response.data)) {
+        const savedJobIds = new Set(response.data.map(saved => saved.jobId));
+        setSavedJobs(savedJobIds);
+      } else {
+        console.warn('Saved jobs API returned unexpected data structure:', response);
+        setSavedJobs(new Set());
+      }
+    } catch (error) {
+      console.error('Error loading saved jobs:', error);
+      setSavedJobs(new Set());
+    }
+  };
+
+  const handleApply = (jobId: string) => {
+    router.push(`/jobs/${jobId}`);
+  };
+
+  const handleSaveJob = async (jobId: string) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        router.push('/auth/login');
+        return;
+      }
+
+      if (savedJobs.has(jobId)) {
+        await SavedJobsService.unsaveJob(jobId);
+        setSavedJobs(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(jobId);
+          return newSet;
+        });
+      } else {
+        await SavedJobsService.saveJob(jobId);
+        setSavedJobs(prev => new Set([...prev, jobId]));
+      }
+    } catch (error) {
+      console.error('Error saving/unsaving job:', error);
+      // If not authenticated, redirect to login
+      const axiosError = error as { response?: { status: number } };
+      if (axiosError?.response?.status === 401) {
+        router.push('/auth/login');
+      }
+    }
   };
 
   const handleViewAllJobs = () => {
     router.push('/jobs');
   };
+
+  const getJobSalaryDisplay = (job: Job): string => {
+    if (job.minSalary && job.maxSalary) {
+      return `${job.currency || 'VNĐ'} ${job.minSalary.toLocaleString()} - ${job.maxSalary.toLocaleString()}`;
+    }
+    if (job.minSalary) {
+      return `Từ ${job.currency || 'VNĐ'} ${job.minSalary.toLocaleString()}`;
+    }
+    if (job.maxSalary) {
+      return `Đến ${job.currency || 'VNĐ'} ${job.maxSalary.toLocaleString()}`;
+    }
+    return 'Thương lượng';
+  };
+
+  const getJobLocation = (job: Job): string => {
+    const parts = [job.city, job.state, job.country].filter(Boolean);
+    return parts.join(', ') || 'Không xác định';
+  };
+
+  const getJobTypeDisplay = (jobType?: string): string => {
+    const typeMap: { [key: string]: string } = {
+      'full_time': 'Toàn thời gian',
+      'part_time': 'Bán thời gian',
+      'contract': 'Hợp đồng',
+      'freelance': 'Freelance',
+      'internship': 'Thực tập',
+    };
+    return typeMap[jobType || ''] || 'Không xác định';
+  };
+
+  const getTimeAgo = (dateString: string): string => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+    if (diffInHours < 1) return 'Vừa đăng';
+    if (diffInHours < 24) return `${diffInHours} giờ trước`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) return `${diffInDays} ngày trước`;
+    const diffInMonths = Math.floor(diffInDays / 30);
+    return `${diffInMonths} tháng trước`;
+  };
+
+  if (isLoading) {
+    return (
+      <section className="py-16 lg:py-24 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-[#f26b38]" />
+            <span className="ml-2 text-gray-600">Đang tải việc làm nổi bật...</span>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 lg:py-24 bg-gray-50">
@@ -123,80 +168,92 @@ export function FeaturedJobs() {
         </div>
 
         {/* Jobs Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {jobs.map((job) => (
-            <Card key={job.id} className="p-6 hover:shadow-xl transition-shadow duration-300 group relative">
-              {/* Featured Badge */}
-              {job.featured && (
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-gradient-to-r from-[#f26b38] to-[#e05a27] text-white border-0">
-                    ⭐ Nổi bật
-                  </Badge>
+        {jobs.length > 0 ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {jobs.map((job) => (
+              <Card key={job.id} className="p-6 hover:shadow-xl transition-shadow duration-300 group relative">
+                {/* Company Logo & Info */}
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border">
+                    <div className="w-full h-full bg-gradient-to-br from-orange-100 to-red-100"></div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg mb-1 group-hover:text-[#f26b38] transition-colors line-clamp-2">
+                      {job.title}
+                    </h3>
+                    <p className="text-sm text-gray-600">{job.company?.name}</p>
+                  </div>
+                  <button
+                    onClick={() => handleSaveJob(job.id)}
+                    className={`text-gray-400 hover:text-[#f26b38] transition-colors ${
+                      savedJobs.has(job.id) ? 'text-[#f26b38]' : ''
+                    }`}
+                    title={savedJobs.has(job.id) ? 'Bỏ lưu' : 'Lưu việc làm'}
+                  >
+                    <Bookmark className={`h-5 w-5 ${savedJobs.has(job.id) ? 'fill-current' : ''}`} />
+                  </button>
                 </div>
-              )}
 
-              {/* Company Logo & Info */}
-              <div className="flex items-start gap-4 mb-4">
-                <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border">
-                  <div className="w-full h-full bg-gradient-to-br from-orange-100 to-red-100"></div>
+                {/* Job Details */}
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <span>{getJobLocation(job)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <DollarSign className="h-4 w-4 flex-shrink-0" />
+                    <span>{getJobSalaryDisplay(job)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Briefcase className="h-4 w-4 flex-shrink-0" />
+                    <span>{getJobTypeDisplay(job.jobType)}</span>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg mb-1 group-hover:text-[#f26b38] transition-colors line-clamp-2">
-                    {job.title}
-                  </h3>
-                  <p className="text-sm text-gray-600">{job.company}</p>
-                </div>
-                <button
-                  onClick={() => handleSaveJob(job.id)}
-                  className="text-gray-400 hover:text-[#f26b38] transition-colors"
-                >
-                  <Bookmark className="h-5 w-5" />
-                </button>
-              </div>
 
-              {/* Job Details */}
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <MapPin className="h-4 w-4 flex-shrink-0" />
-                  <span>{job.location}</span>
+                {/* Tags */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {job.skills.slice(0, 3).map((skill) => (
+                    <Badge key={skill.id} variant="secondary" className="text-xs">
+                      {skill.name}
+                    </Badge>
+                  ))}
+                  {job.tags.slice(0, 2).map((tag) => (
+                    <Badge key={tag.id} variant="outline" className="text-xs">
+                      {tag.name}
+                    </Badge>
+                  ))}
+                  {(job.skills.length + job.tags.length) > 5 && (
+                    <Badge variant="secondary" className="text-xs">
+                      +{(job.skills.length + job.tags.length) - 5}
+                    </Badge>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <DollarSign className="h-4 w-4 flex-shrink-0" />
-                  <span>{job.salary}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Briefcase className="h-4 w-4 flex-shrink-0" />
-                  <span>{job.type} • {job.level}</span>
-                </div>
-              </div>
 
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {job.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="flex items-center gap-1 text-sm text-gray-500">
-                  <Clock className="h-4 w-4" />
-                  <span>{job.posted}</span>
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                    <Clock className="h-4 w-4" />
+                    <span>{getTimeAgo(job.createdAt)}</span>
+                  </div>
+                  <Button
+                    onClick={() => handleApply(job.id)}
+                    size="sm"
+                    variant="ghost"
+                    className="text-[#f26b38] hover:text-[#e05a27] hover:bg-orange-50"
+                  >
+                    Ứng tuyển
+                  </Button>
                 </div>
-                <Button
-                  onClick={() => handleApply(job.id)}
-                  size="sm"
-                  variant="ghost"
-                  className="text-[#f26b38] hover:text-[#e05a27] hover:bg-orange-50"
-                >
-                  Ứng tuyển
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có việc làm nào</h3>
+            <p className="text-gray-600">Việc làm sẽ xuất hiện khi có nhà tuyển dụng đăng tin.</p>
+          </div>
+        )}
 
         {/* Mobile View All Button */}
         <div className="text-center mt-8 md:hidden">

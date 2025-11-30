@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { JobsHero } from "@/components/JobsHero";
+import { api } from "@/services/api";
 
 interface Job {
   id: string;
@@ -80,41 +81,117 @@ export default function JobsPage() {
   const [locationQuery, setLocationQuery] = useState("");
   const jobsPerPage = 6;
 
-  // Fetch jobs on component mount
+  // Fetch jobs on component mount and whenever the component is remounted
   useEffect(() => {
+    console.log('🚀 Jobs page mounted, fetching jobs...');
+    console.log('🌐 API URL from env:', process.env.NEXT_PUBLIC_API_URL);
     fetchJobs();
+  }, []);
+
+  // Force refresh when refresh parameter is present (from job creation redirect)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refreshParam = urlParams.get('refresh');
+    if (refreshParam) {
+      console.log('Refresh parameter detected, forcing jobs fetch...');
+      fetchJobs();
+      // Clean up URL
+      window.history.replaceState({}, '', '/jobs');
+    }
+  }, []);
+
+  // Refetch jobs when search parameters change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchJobs();
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 300); // Debounce search
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, locationQuery]);
+
+  // Refetch jobs when page becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Tab became visible, refreshing jobs...');
+        fetchJobs();
+      }
+    };
+
+    const handleFocus = () => {
+      console.log('Window focused, refreshing jobs...');
+      fetchJobs();
+    };
+
+    // Also refresh on page load/navigation
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) {
+        console.log('Page loaded/refreshed, fetching jobs...');
+        fetchJobs();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('pageshow', handlePageShow as EventListener);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handlePageShow as EventListener);
+    };
+  }, []);
+
+  // Also add a periodic refresh every 30 seconds for active users
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!document.hidden) { // Only refresh if tab is active
+        console.log('Periodic refresh: checking for new jobs...');
+        fetchJobs();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchJobs = async () => {
     try {
       setIsLoading(true);
-      // Try to get token for authenticated requests
-      const token = localStorage.getItem('access_token');
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
+      console.log('🔍 Starting to fetch jobs from API...');
 
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      // Use the api service which handles authentication automatically
+      console.log('🌐 Making API call to /jobs...');
+
+      const response = await api.get('/jobs');
+      console.log('📡 API Response received');
+
+      const data = response.data;
+      // API returns paginated response: {data: [...], total, page, limit, totalPages}
+      console.log('✅ Jobs API call successful');
+      console.log('📊 Jobs fetched from API:', data.data?.length || 0, 'jobs');
+      console.log('📋 Jobs data sample:', data.data?.slice(0, 3)); // Show first 3 jobs
+      console.log('🔢 Total jobs in response:', data.total);
+
+      if (data.data && data.data.length > 0) {
+        console.log('📋 First job details:', {
+          id: data.data[0].id,
+          title: data.data[0].title,
+          company: data.data[0].company?.name,
+          status: data.data[0].status,
+          createdAt: data.data[0].createdAt
+        });
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/jobs`, {
-        headers,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // API returns paginated response: {data: [...], total, page, limit, totalPages}
-        setJobs(data.data || []);
-      } else {
-        console.error('Failed to fetch jobs:', response.status, response.statusText);
-        setJobs([]);
-      }
+      setJobs(data.data || []);
+      console.log('💾 Jobs stored in state:', data.data?.length || 0, 'jobs');
     } catch (error) {
-      console.error('Error fetching jobs:', error);
+      console.error('❌ Error fetching jobs:', error);
+      console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
       setJobs([]);
     } finally {
       setIsLoading(false);
+      console.log('🏁 Job fetching completed');
     }
   };
 
@@ -331,6 +408,8 @@ export default function JobsPage() {
                     <Input
                       placeholder="Vị trí công việc..."
                       className="pl-10"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
 
@@ -338,10 +417,20 @@ export default function JobsPage() {
 
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input placeholder="Địa điểm..." className="pl-10" />
+                    <Input
+                      placeholder="Địa điểm..."
+                      className="pl-10"
+                      value={locationQuery}
+                      onChange={(e) => setLocationQuery(e.target.value)}
+                    />
                   </div>
 
-                  <Button className="bg-[#f26b38] hover:bg-[#e05a27]">
+                  <Button
+                    className="bg-[#f26b38] hover:bg-[#e05a27]"
+                    onClick={() => {
+                      setCurrentPage(1); // Reset to first page when searching
+                    }}
+                  >
                     Tìm kiếm
                   </Button>
                 </div>
@@ -456,6 +545,10 @@ export default function JobsPage() {
                       {filteredAndSortedJobs.length}
                     </span>{" "}
                     việc làm
+                    {/* Debug Info */}
+                    <span className="ml-4 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                      API: {jobs.length} jobs • Display: {filteredAndSortedJobs.length} filtered
+                    </span>
                   </div>
                   <div className="flex items-center gap-4">
                     <Button
@@ -466,6 +559,15 @@ export default function JobsPage() {
                     >
                       <SlidersHorizontal className="h-4 w-4 mr-2" />
                       Bộ lọc
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => fetchJobs()}
+                      disabled={isLoading}
+                      title="Làm mới danh sách"
+                    >
+                      🔄
                     </Button>
                     <select
                       value={sortBy}
@@ -586,13 +688,15 @@ export default function JobsPage() {
                                   </div>
                                   {/* Apply Button - Inline */}
                                   <div className="hidden md:block">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="border-[#f26b38] text-[#f26b38] hover:bg-orange-50 shadow-sm hover:shadow-md transition-all duration-200 h-7 px-3 text-xs"
-                                    >
-                                      Ứng tuyển
-                                    </Button>
+                                    <Link href={`/jobs/${job.id}/apply`}>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-[#f26b38] text-[#f26b38] hover:bg-orange-50 shadow-sm hover:shadow-md transition-all duration-200 h-7 px-3 text-xs"
+                                      >
+                                        Ứng tuyển
+                                      </Button>
+                                    </Link>
                                   </div>
                                 </div>
                               </div>
@@ -601,9 +705,11 @@ export default function JobsPage() {
 
                           {/* Mobile Apply Button */}
                           <div className="md:hidden mt-4 pt-4 border-t border-gray-100">
-                            <Button className="w-full bg-[#f26b38] hover:bg-[#e05a27] text-white font-medium py-3">
-                              Ứng tuyển ngay
-                            </Button>
+                            <Link href={`/jobs/${job.id}/apply`}>
+                              <Button className="w-full bg-[#f26b38] hover:bg-[#e05a27] text-white font-medium py-3">
+                                Ứng tuyển ngay
+                              </Button>
+                            </Link>
                           </div>
                         </Card>
                       ))}

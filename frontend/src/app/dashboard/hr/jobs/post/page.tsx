@@ -151,8 +151,16 @@ export default function PostJobPage() {
 
       console.log("Fetching companies with token:", token.substring(0, 20) + "...");
 
-      // Fetch user's companies
-      const companiesResponse = await api.get("/companies/user/my-companies");
+      // Fetch user's companies (for HR users, use HR endpoint)
+      let companiesResponse;
+      try {
+        // Try HR endpoint first
+        companiesResponse = await api.get("/hr/companies");
+      } catch (hrError) {
+        // Fallback to regular companies endpoint
+        console.log("HR companies endpoint failed, trying regular endpoint");
+        companiesResponse = await api.get("/companies/user/my-companies");
+      }
       console.log("Companies response:", companiesResponse);
       const companiesData = companiesResponse.data;
       console.log("Companies data:", companiesData);
@@ -321,7 +329,7 @@ export default function PostJobPage() {
 
       // Redirect after a short delay to show the success message
       setTimeout(() => {
-        router.push("/dashboard/hr");
+        router.push("/jobs");
       }, 2000);
     } catch (error) {
       console.error("Error creating job:", error);

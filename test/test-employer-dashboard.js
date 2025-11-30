@@ -7,9 +7,11 @@ async function testEmployerDashboard() {
 
   try {
     // First, register a test employer user
+    const timestamp = Date.now();
+    const email = `employer-test-${timestamp}@example.com`;
     console.log('📝 Registering test employer...');
     const registerResponse = await axios.post(`${BASE_URL}/auth/register`, {
-      email: 'employer-test@example.com',
+      email: email,
       password: 'password123',
       role: 'employer',
     });
@@ -18,7 +20,7 @@ async function testEmployerDashboard() {
     // Login to get token
     console.log('🔑 Logging in...');
     const loginResponse = await axios.post(`${BASE_URL}/auth/login`, {
-      email: 'employer-test@example.com',
+      email: email,
       password: 'password123',
     });
 
@@ -32,13 +34,15 @@ async function testEmployerDashboard() {
 
     // Create a company for the employer
     console.log('🏢 Creating company...');
+    const companyName = `Test Company ${timestamp}`;
     const companyResponse = await axios.post(`${BASE_URL}/companies`, {
-      name: 'Test Company Inc',
+      name: companyName,
       description: 'A test company for dashboard testing',
-      industry: 'Technology',
+      industry: 'technology',
       website: 'https://testcompany.com',
-      location: 'Test City, TC',
-      size: '1-10',
+      city: 'Test City',
+      country: 'Test Country',
+      size: 'small',
     }, config);
 
     const companyId = companyResponse.data.id;
@@ -57,17 +61,16 @@ async function testEmployerDashboard() {
       minSalary: 50000,
       maxSalary: 70000,
       currency: 'USD',
-      skills: ['JavaScript', 'React'],
+      skillIds: [],
+      tagIds: [],
       companyId: companyId,
     }, config);
 
     const jobId = jobResponse.data.id;
     console.log('✅ Job created, ID:', jobId);
 
-    // Publish the job
-    console.log('📢 Publishing job...');
-    await axios.post(`${BASE_URL}/jobs/${jobId}/publish`, {}, config);
-    console.log('✅ Job published');
+    // Job is already published by default, no need to publish again
+    console.log('✅ Job created and published by default');
 
     // Now test the employer dashboard endpoints
     console.log('\n📊 Testing Employer Dashboard Endpoints');
@@ -87,7 +90,54 @@ async function testEmployerDashboard() {
     const applicantsResponse = await axios.get(`${BASE_URL}/employer/dashboard/applicants?limit=5`, config);
     console.log('✅ Applicants endpoint working, found', applicantsResponse.data.length, 'applicants');
 
-    console.log('\n🎉 All employer dashboard endpoints are working!');
+    // Now test the application submission process by creating a job seeker and applying
+    console.log('\n🔄 Testing application submission process...');
+
+    // Create a job seeker user
+    const jobSeekerEmail = `jobseeker-test-${timestamp}@example.com`;
+    console.log('👤 Registering job seeker...');
+    const jobSeekerRegisterResponse = await axios.post(`${BASE_URL}/auth/register`, {
+      email: jobSeekerEmail,
+      password: 'password123',
+      role: 'job_seeker',
+    });
+    console.log('✅ Job seeker registration successful');
+
+    // Login as job seeker
+    console.log('🔑 Job seeker logging in...');
+    const jobSeekerLoginResponse = await axios.post(`${BASE_URL}/auth/login`, {
+      email: jobSeekerEmail,
+      password: 'password123',
+    });
+    const jobSeekerToken = jobSeekerLoginResponse.data.access_token;
+    console.log('✅ Job seeker login successful');
+
+    const jobSeekerConfig = {
+      headers: { Authorization: `Bearer ${jobSeekerToken}` },
+    };
+
+    // Try to apply for the job
+    console.log('📝 Submitting application...');
+    try {
+      const applicationResponse = await axios.post(`${BASE_URL}/applications`, {
+        jobId: jobId,
+        coverLetter: 'I am very interested in this position and believe I have the skills required.',
+        source: 'website'
+      }, jobSeekerConfig);
+      console.log('✅ Application submitted successfully:', applicationResponse.data);
+    } catch (applicationError) {
+      console.error('❌ Application submission failed:', applicationError.response?.data || applicationError.message);
+    }
+
+    // Check if applications are now showing up in employer dashboard
+    console.log('🔄 Rechecking employer dashboard after application...');
+    const updatedStatsResponse = await axios.get(`${BASE_URL}/employer/dashboard/stats`, config);
+    console.log('📊 Updated stats:', updatedStatsResponse.data);
+
+    const updatedApplicantsResponse = await axios.get(`${BASE_URL}/employer/dashboard/applicants?limit=5`, config);
+    console.log('👥 Updated applicants:', updatedApplicantsResponse.data.length, 'applicants found');
+
+    console.log('\n🎉 Application submission test completed!');
 
   } catch (error) {
     console.error('\n❌ Test failed:');

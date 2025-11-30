@@ -1,41 +1,71 @@
-# Use Node.js 20 Alpine for smaller image size and compatibility
+# ============================================
+# CV King Backend Dockerfile
+# Multi-stage build for optimized production image
+# ============================================
+
+# ---------- Base Stage ----------
 FROM node:20-alpine AS base
-RUN apk add --no-cache yarn
 
-# Install dependencies
+# Install system dependencies
+RUN apk add --no-cache \
+    yarn \
+    dumb-init \
+    && rm -rf /var/cache/apk/*
+
+# Create app directory
+WORKDIR /app
+
+# Set production environment
+ENV NODE_ENV=production
+
+# ---------- Dependencies Stage ----------
 FROM base AS deps
-WORKDIR /app
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
 
-# Build the application
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Copy package files
+COPY package.json yarn.lock ./
+
+# Install dependencies with frozen lockfile for reproducible builds
+RUN yarn install --frozen-lockfile --production=false \
+    && yarn cache clean
+
+# ---------- Builder Stage ----------
+FROM deps AS builder
+
+# Copy source code
 COPY . .
+
+# Build application
 RUN yarn build
 
-# Production image
+# Remove dev dependencies to reduce image size
+RUN yarn install --frozen-lockfile --production=true \
+    && yarn cache clean
+
+# ---------- Production Stage ----------
 FROM base AS runner
-WORKDIR /app
 
-ENV NODE_ENV production
-
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nodejs
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nodejs
 
 # Copy built application
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nodejs:nodejs /app/yarn.lock ./yarn.lock
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 
-# Install only production dependencies
-RUN yarn install --frozen-lockfile --production && yarn cache clean
-
+# Switch to non-root user
 USER nodejs
 
-EXPOSE 3003
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+
+# Expose port
+EXPOSE 3001
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
 CMD ["yarn", "start:prod"]
