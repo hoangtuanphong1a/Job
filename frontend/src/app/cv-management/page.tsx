@@ -194,17 +194,9 @@ export default function CVManagementPage() {
         <div className="container mx-auto px-4 max-w-6xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="outline" size="sm" className="text-[#f26b38] border-[#f26b38] hover:bg-[#f26b38] hover:text-white">
-                  <Home className="h-4 w-4 mr-2" />
-                  Trang chủ
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold">Quản lý CV</h1>
-                <p className="text-gray-600 mt-1">Tạo và quản lý hồ sơ CV chuyên nghiệp của bạn</p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold">Quản lý CV</h1>
+              <p className="text-gray-600 mt-1">Tạo và quản lý hồ sơ CV chuyên nghiệp của bạn</p>
             </div>
             <Button onClick={handleCreateCV} className="bg-[#f26b38] hover:bg-[#e05a27]">
               <Plus className="h-4 w-4 mr-2" />

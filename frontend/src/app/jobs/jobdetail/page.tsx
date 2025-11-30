@@ -125,6 +125,8 @@ export default function JobDetailPage() {
   const [showApplicationForm, setShowApplicationForm] = useState(false);
 
   const handleApplicationSuccess = () => {
+    // The JobApplicationForm component now handles the redirect internally
+    // We just need to update local state
     setIsApplied(true);
     setShowApplicationForm(false);
   };

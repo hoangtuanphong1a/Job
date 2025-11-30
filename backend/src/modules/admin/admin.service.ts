@@ -3,10 +3,11 @@ import {
   Logger,
   BadRequestException,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual } from 'typeorm';
-import { User } from '../common/entities/user.entity';
+import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { User, UserStatus } from '../common/entities/user.entity';
 import { Role, RoleName } from '../common/entities/role.entity';
 import { UserRole } from '../common/entities/user-role.entity';
 import { Job, JobStatus } from '../common/entities/job.entity';
@@ -266,40 +267,169 @@ export class AdminService {
   }
 
   // ===== USER MANAGEMENT =====
+  async createUser(userData: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    role: RoleName;
+  }) {
+    try {
+      const { email, password, firstName, lastName, role } = userData;
+
+      // Check if user already exists
+      const existingUser = await this.userRepository.findOne({
+        where: { email },
+      });
+      if (existingUser) {
+        throw new ConflictException('User with this email already exists');
+      }
+
+      // Create user
+      const user = this.userRepository.create({
+        email,
+        password, // Will be hashed by BeforeInsert hook
+        firstName,
+        lastName,
+        status: UserStatus.ACTIVE,
+      });
+
+      const savedUser = await this.userRepository.save(user);
+
+      // Assign role
+      const roleEntity = await this.roleRepository.findOne({
+        where: { name: role },
+      });
+      if (!roleEntity) {
+        throw new BadRequestException(`Role ${role} not found`);
+      }
+
+      const userRole = this.userRoleRepository.create({
+        user: savedUser,
+        role: roleEntity,
+      });
+      await this.userRoleRepository.save(userRole);
+
+      // Create company for employer role
+      if (role === RoleName.EMPLOYER) {
+        try {
+          // Professional company names for demo purposes
+          const companyNames = [
+            'Tech Solutions Việt Nam',
+            'Innovative Software Co.',
+            'Digital Marketing Agency',
+            'E-commerce Solutions',
+            'Cloud Computing Services',
+            'Mobile App Development',
+            'Data Analytics Corp',
+            'AI & Machine Learning Ltd',
+            'Cybersecurity Experts',
+            'Web Development Studio',
+            'Software Consulting Group',
+            'IT Infrastructure Services',
+            'Digital Transformation Co.',
+            'Startup Accelerator Hub',
+            'Tech Startup Inc.',
+            'Innovation Labs',
+            'Future Tech Solutions',
+            'Smart Systems Co.',
+            'NextGen Technologies',
+            'Modern Software House'
+          ];
+
+          const randomCompanyName = companyNames[Math.floor(Math.random() * companyNames.length)];
+
+          const company = this.companyRepository.create({
+            name: randomCompanyName,
+            email: email, // Use registration email as company email
+            ownerId: savedUser.id,
+            owner: savedUser,
+          });
+          await this.companyRepository.save(company);
+          console.log(`Company created for employer: ${company.name}`);
+        } catch (companyError) {
+          console.error('Failed to create company for employer:', companyError);
+          // Don't fail user creation if company creation fails
+        }
+      }
+
+      // Reload user with relations
+      const userWithRoles = await this.userRepository.findOne({
+        where: { id: savedUser.id },
+        relations: ['userRoles', 'userRoles.role'],
+      });
+
+      this.logger.log(`User ${email} created by admin with role ${role}`);
+      return userWithRoles;
+    } catch (error) {
+      this.logger.error('Error creating user', error);
+      throw error;
+    }
+  }
+
   async getAllUsers(query: UserQuery) {
     try {
       const { page = 1, limit = 10, role, status, search } = query;
       const skip = (page - 1) * limit;
 
-      let qb = this.userRepository
-        .createQueryBuilder('user')
-        .leftJoinAndSelect('user.userRoles', 'userRole')
-        .leftJoinAndSelect('userRole.role', 'role')
-        .leftJoinAndSelect('user.company', 'company');
+      // For role filtering, we'll need to join userRoles - let's do it separately for now
+      let users: User[];
+      let total: number;
 
-      // Apply filters
       if (role) {
-        qb = qb.andWhere('role.name = :role', { role });
-      }
+        // Get users with specific role
+        const userIds = await this.userRepository
+          .createQueryBuilder('user')
+          .leftJoin('user.userRoles', 'userRole')
+          .leftJoin('userRole.role', 'role')
+          .where('role.name = :role', { role })
+          .select('user.id')
+          .getRawMany();
 
-      if (status) {
-        qb = qb.andWhere('user.isActive = :isActive', {
-          isActive: status === 'active',
+        if (userIds.length === 0) {
+          return {
+            data: [],
+            total: 0,
+            page,
+            limit,
+            totalPages: 0,
+          };
+        }
+
+        const ids = userIds.map((u: { user_id: string }) => u.user_id);
+        [users, total] = await this.userRepository.findAndCount({
+          where: ids.map((id) => ({ id })),
+          relations: ['userRoles', 'userRoles.role'],
+          order: { createdAt: 'DESC' },
+          skip,
+          take: limit,
         });
-      }
+      } else {
+        // Simplified query with basic filters and userRoles relation
+        let qb = this.userRepository.createQueryBuilder('user')
+          .leftJoinAndSelect('user.userRoles', 'userRole')
+          .leftJoinAndSelect('userRole.role', 'roleEntity');
 
-      if (search) {
-        qb = qb.andWhere(
-          '(user.email LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)',
-          { search: `%${search}%` },
-        );
-      }
+        // Apply filters
+        if (status) {
+          qb = qb.andWhere('user.isActive = :isActive', {
+            isActive: status === 'active',
+          });
+        }
 
-      const [users, total] = await qb
-        .orderBy('user.createdAt', 'DESC')
-        .skip(skip)
-        .take(limit)
-        .getManyAndCount();
+        if (search) {
+          qb = qb.andWhere(
+            '(user.email LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)',
+            { search: `%${search}%` },
+          );
+        }
+
+        [users, total] = await qb
+          .orderBy('user.createdAt', 'DESC')
+          .skip(skip)
+          .take(limit)
+          .getManyAndCount();
+      }
 
       return {
         data: users,
@@ -321,9 +451,8 @@ export class AdminService {
         relations: [
           'userRoles',
           'userRoles.role',
-          'company',
-          'jobSeekerProfile',
-          'applications',
+          'jobSeekerProfiles',
+          'jobSeekerProfiles.applications',
         ],
       });
 
@@ -423,8 +552,7 @@ export class AdminService {
 
       let qb = this.jobRepository
         .createQueryBuilder('job')
-        .leftJoinAndSelect('job.company', 'company')
-        .leftJoinAndSelect('job.applications', 'applications');
+        .leftJoinAndSelect('job.company', 'company');
 
       if (status) {
         qb = qb.andWhere('job.status = :status', { status });
@@ -586,6 +714,7 @@ export class AdminService {
       let qb = this.applicationRepository
         .createQueryBuilder('application')
         .leftJoinAndSelect('application.jobSeekerProfile', 'jobSeekerProfile')
+        .leftJoinAndSelect('jobSeekerProfile.user', 'user')
         .leftJoinAndSelect('application.job', 'job')
         .leftJoinAndSelect('job.company', 'company');
 
@@ -690,16 +819,25 @@ export class AdminService {
       // Get usage statistics for each skill
       const skillsWithStats = await Promise.all(
         skills.map(async (skill) => {
-          const usageCount = await this.skillRepository
-            .createQueryBuilder('skill')
-            .leftJoin('skill.jobSeekerSkills', 'jss')
-            .where('skill.id = :skillId', { skillId: skill.id })
-            .getCount();
+          try {
+            const usageCount = await this.skillRepository
+              .createQueryBuilder('skill')
+              .leftJoin('skill.jobSeekerSkills', 'jss')
+              .where('skill.id = :skillId', { skillId: skill.id })
+              .getCount();
 
-          return {
-            ...skill,
-            usageCount,
-          };
+            return {
+              ...skill,
+              usageCount,
+            };
+          } catch (error) {
+            // If relationship query fails, return skill with usageCount 0
+            console.warn(`Failed to get usage count for skill ${skill.id}:`, error.message);
+            return {
+              ...skill,
+              usageCount: 0,
+            };
+          }
         }),
       );
 
@@ -810,6 +948,92 @@ export class AdminService {
       };
     } catch (error) {
       this.logger.error('Error getting all job categories', error);
+      throw error;
+    }
+  }
+
+  async createJobCategory(data: {
+    name: string;
+    description?: string;
+  }) {
+    try {
+      const category = this.jobCategoryRepository.create(data);
+      const savedCategory = await this.jobCategoryRepository.save(category);
+
+      this.logger.log(`Job category ${savedCategory.name} created`);
+      return savedCategory;
+    } catch (error) {
+      this.logger.error('Error creating job category', error);
+      throw error;
+    }
+  }
+
+  async updateJobCategory(
+    id: string,
+    data: { name?: string; description?: string },
+  ) {
+    try {
+      const result = await this.jobCategoryRepository.update(id, data);
+      if (result.affected === 0) {
+        throw new NotFoundException('Job category not found');
+      }
+
+      this.logger.log(`Job category ${id} updated`);
+      return { message: 'Job category updated successfully' };
+    } catch (error) {
+      this.logger.error(`Error updating job category ${id}`, error);
+      throw error;
+    }
+  }
+
+  async deleteJobCategory(id: string) {
+    try {
+      const result = await this.jobCategoryRepository.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException('Job category not found');
+      }
+
+      this.logger.log(`Job category ${id} deleted`);
+    } catch (error) {
+      this.logger.error(`Error deleting job category ${id}`, error);
+      throw error;
+    }
+  }
+
+  // ===== CONTENT MANAGEMENT STATS =====
+  async getContentStats() {
+    try {
+      const today = new Date();
+      const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      // Skills statistics
+      const totalSkills = await this.skillRepository.count();
+      const skillsThisMonth = await this.skillRepository
+        .createQueryBuilder('skill')
+        .where('skill.createdAt >= :thisMonth AND skill.createdAt <= :today', {
+          thisMonth,
+          today,
+        })
+        .getCount();
+
+      // Categories statistics
+      const totalCategories = await this.jobCategoryRepository.count();
+      const categoriesThisMonth = await this.jobCategoryRepository
+        .createQueryBuilder('category')
+        .where('category.createdAt >= :thisMonth AND category.createdAt <= :today', {
+          thisMonth,
+          today,
+        })
+        .getCount();
+
+      return {
+        totalSkills,
+        totalCategories,
+        skillsThisMonth,
+        categoriesThisMonth,
+      };
+    } catch (error) {
+      this.logger.error('Error getting content stats', error);
       throw error;
     }
   }

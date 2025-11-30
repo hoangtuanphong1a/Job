@@ -25,10 +25,14 @@ import {
   AlertTriangle,
   Shield,
   Crown,
-  User
+  User,
+  Plus,
+  Trash2,
+  UserPlus
 } from "lucide-react";
+import { adminService, User as AdminUser } from "@/services/adminService";
 
-interface User {
+interface UserDisplay {
   id: string;
   email: string;
   fullName: string;
@@ -50,11 +54,26 @@ interface UserFilters {
 
 export default function AdminUsersPage() {
   const router = useRouter();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<UserFilters>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserDisplay | null>(null);
+
+  // Form states
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    role: 'job-seeker' as 'job-seeker' | 'employer' | 'admin'
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -62,29 +81,30 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/auth/login');
-        return;
-      }
-
-      const queryParams = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '20',
+      const params = {
+        page: currentPage,
+        limit: 20,
         ...filters
-      });
+      };
 
-      const response = await fetch(`/api/admin/users?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await adminService.getAllUsers(params);
 
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-        setTotalPages(data.totalPages || 1);
-      }
+      // Transform the data to match UI expectations
+      const transformedUsers: UserDisplay[] = response.data.map(user => ({
+        id: user.id,
+        email: user.email,
+        fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        role: (user.userRoles?.[0]?.role?.name as UserDisplay['role']) || 'job-seeker',
+        status: user.isActive ? 'active' : 'inactive',
+        createdAt: user.createdAt,
+        avatar: undefined, // Not available in current backend
+        lastLogin: undefined, // Not available in current backend
+        applicationsCount: user.applications?.length || 0,
+        jobsPostedCount: user.statistics?.totalJobsPosted || 0
+      }));
+
+      setUsers(transformedUsers);
+      setTotalPages(response.totalPages);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
@@ -94,19 +114,14 @@ export default function AdminUsersPage() {
 
   const handleStatusChange = async (userId: string, newStatus: string) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/users/${userId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
+      const statusMap: { [key: string]: string } = {
+        'active': 'active',
+        'inactive': 'inactive',
+        'banned': 'banned'
+      };
 
-      if (response.ok) {
-        fetchUsers(); // Refresh the list
-      }
+      await adminService.updateUserStatus(userId, statusMap[newStatus] || newStatus);
+      fetchUsers(); // Refresh the list
     } catch (error) {
       console.error('Error updating user status:', error);
     }
@@ -114,22 +129,79 @@ export default function AdminUsersPage() {
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/users/${userId}/role`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ role: newRole })
-      });
+      const roleMap: { [key: string]: string } = {
+        'job-seeker': 'job-seeker',
+        'employer': 'employer',
+        'admin': 'admin'
+      };
 
-      if (response.ok) {
-        fetchUsers(); // Refresh the list
-      }
+      await adminService.updateUserRole(userId, roleMap[newRole] || newRole);
+      fetchUsers(); // Refresh the list
     } catch (error) {
       console.error('Error updating user role:', error);
     }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
+
+    try {
+      await adminService.deleteUser(userId);
+      fetchUsers(); // Refresh the list
+      setShowDeleteModal(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    try {
+      await adminService.createUser(formData);
+      fetchUsers(); // Refresh the list
+      setShowCreateModal(false);
+      setFormData({
+        email: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        role: 'job-seeker'
+      });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      alert(error?.response?.data?.message || 'Có lỗi xảy ra khi tạo người dùng');
+    }
+  };
+
+  const handleEditUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      // Update user details would require additional backend endpoints
+      alert('Tính năng chỉnh sửa người dùng sẽ được thêm trong phiên bản tiếp theo');
+      setShowEditModal(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
+  };
+
+  const openEditModal = (user: UserDisplay) => {
+    setSelectedUser(user);
+    setFormData({
+      email: user.email,
+      password: '', // Not used for editing
+      firstName: user.fullName.split(' ')[0] || '',
+      lastName: user.fullName.split(' ').slice(1).join(' ') || '',
+      role: user.role
+    });
+    setShowEditModal(true);
+  };
+
+  const openDeleteModal = (user: UserDisplay) => {
+    setSelectedUser(user);
+    setShowDeleteModal(true);
   };
 
   const getRoleIcon = (role: string) => {
@@ -212,6 +284,14 @@ export default function AdminUsersPage() {
                 <p className="text-gray-600 mt-1">Xem và quản lý tất cả tài khoản người dùng.</p>
               </div>
             </div>
+
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-[#f26b38] hover:bg-[#e05a27] flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Tạo người dùng
+            </Button>
           </div>
 
           {/* Filters */}
@@ -229,24 +309,24 @@ export default function AdminUsersPage() {
                 </div>
               </div>
 
-              <Select value={filters.role || ''} onValueChange={(value) => setFilters({ ...filters, role: value || undefined })}>
+              <Select value={filters.role || 'all'} onValueChange={(value) => setFilters({ ...filters, role: value === 'all' ? undefined : value })}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Tất cả vai trò" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả vai trò</SelectItem>
+                  <SelectItem value="all">Tất cả vai trò</SelectItem>
                   <SelectItem value="job-seeker">Người tìm việc</SelectItem>
                   <SelectItem value="employer">Nhà tuyển dụng</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select value={filters.status || ''} onValueChange={(value) => setFilters({ ...filters, status: value || undefined })}>
+              <Select value={filters.status || 'all'} onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? undefined : value })}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
                   <SelectItem value="active">Hoạt động</SelectItem>
                   <SelectItem value="inactive">Không hoạt động</SelectItem>
                   <SelectItem value="banned">Đã khóa</SelectItem>
@@ -303,8 +383,33 @@ export default function AdminUsersPage() {
                       {getStatusBadge(user.status)}
 
                       <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          title="Xem chi tiết"
+                        >
                           <Eye className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={() => openEditModal(user)}
+                          title="Chỉnh sửa"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteUser(user.id)}
+                          title="Xóa"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
 
                         <Select onValueChange={(value) => handleStatusChange(user.id, value)}>
@@ -318,17 +423,16 @@ export default function AdminUsersPage() {
                           </SelectContent>
                         </Select>
 
-                        {user.role !== 'admin' && (
-                          <Select onValueChange={(value) => handleRoleChange(user.id, value)}>
-                            <SelectTrigger className="w-[120px] h-8">
-                              <SelectValue placeholder="Vai trò" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="job-seeker">Người tìm việc</SelectItem>
-                              <SelectItem value="employer">Nhà tuyển dụng</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
+                        <Select onValueChange={(value) => handleRoleChange(user.id, value)}>
+                          <SelectTrigger className="w-[120px] h-8">
+                            <SelectValue placeholder="Vai trò" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="job-seeker">Người tìm việc</SelectItem>
+                            <SelectItem value="employer">Nhà tuyển dụng</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
@@ -378,6 +482,108 @@ export default function AdminUsersPage() {
           </Card>
         </div>
       </div>
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Tạo người dùng mới</h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <Input
+                  type="email"
+                  placeholder="example@email.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mật khẩu
+                </label>
+                <Input
+                  type="password"
+                  placeholder="Mật khẩu"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Tên"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Họ
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Họ"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Vai trò
+                </label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) => setFormData({ ...formData, role: value as 'job-seeker' | 'employer' | 'admin' })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn vai trò" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="job-seeker">Người tìm việc</SelectItem>
+                    <SelectItem value="employer">Nhà tuyển dụng</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowCreateModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+              <Button
+                onClick={handleCreateUser}
+                className="flex-1 bg-[#f26b38] hover:bg-[#e05a27]"
+              >
+                Tạo người dùng
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

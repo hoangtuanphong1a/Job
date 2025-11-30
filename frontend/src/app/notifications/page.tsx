@@ -219,17 +219,9 @@ export default function NotificationsPage() {
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="outline" size="sm" className="text-[#f26b38] border-[#f26b38] hover:bg-[#f26b38] hover:text-white">
-                  <Home className="h-4 w-4 mr-2" />
-                  Trang chủ
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold">Thông báo</h1>
-                <p className="text-gray-600 mt-1">Theo dõi các cập nhật và tin nhắn quan trọng</p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold">Thông báo</h1>
+              <p className="text-gray-600 mt-1">Theo dõi các cập nhật và tin nhắn quan trọng</p>
             </div>
             <div className="flex items-center gap-3">
               {unreadCount > 0 && (

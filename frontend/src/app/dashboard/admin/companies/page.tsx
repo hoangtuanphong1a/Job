@@ -28,6 +28,7 @@ import {
   Mail,
   Globe
 } from "lucide-react";
+import { adminService } from "@/services/adminService";
 
 interface Company {
   id: string;
@@ -75,31 +76,41 @@ export default function AdminCompaniesPage() {
 
   const fetchCompanies = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/auth/login');
-        return;
-      }
-
-      const queryParams = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '20',
+      const params = {
+        page: currentPage,
+        limit: 20,
         ...filters
-      });
+      };
 
-      const response = await fetch(`/api/admin/companies?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await adminService.getAllCompanies(params);
 
-      if (response.ok) {
-        const data = await response.json();
-        setCompanies(data.companies || []);
-        setTotalPages(data.totalPages || 1);
-      }
+      // Transform the data to match our local interface
+      const transformedCompanies: Company[] = response.data.map(company => ({
+        id: company.id,
+        name: company.name,
+        description: company.description || '',
+        logo: company.logo,
+        website: company.website,
+        email: 'Email không có sẵn', // Not available in admin service
+        phone: undefined, // Not available in admin service
+        address: 'Địa chỉ không có sẵn', // Not available in admin service
+        industry: 'Ngành không xác định', // Not available in admin service
+        companySize: 'Không xác định', // Not available in admin service
+        status: company.status as Company['status'],
+        createdAt: company.createdAt,
+        verifiedAt: undefined, // Not available in admin service
+        totalJobs: 0, // Not available in admin service
+        totalEmployees: 0, // Not available in admin service
+        rating: 0, // Not available in admin service
+        foundedYear: undefined, // Not available in admin service
+        contactPerson: undefined // Not available in admin service
+      }));
+
+      setCompanies(transformedCompanies);
+      setTotalPages(response.totalPages || 1);
     } catch (error) {
       console.error('Error fetching companies:', error);
+      setCompanies([]);
     } finally {
       setIsLoading(false);
     }
@@ -107,19 +118,8 @@ export default function AdminCompaniesPage() {
 
   const handleStatusChange = async (companyId: string, newStatus: string) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/companies/${companyId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-
-      if (response.ok) {
-        fetchCompanies(); // Refresh the list
-      }
+      await adminService.updateCompanyStatus(companyId, newStatus);
+      fetchCompanies(); // Refresh the list
     } catch (error) {
       console.error('Error updating company status:', error);
     }
@@ -222,12 +222,12 @@ export default function AdminCompaniesPage() {
                 </div>
               </div>
 
-              <Select value={filters.status || ''} onValueChange={(value) => setFilters({ ...filters, status: value || undefined })}>
+              <Select value={filters.status || 'all'} onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? undefined : value })}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
                   <SelectItem value="active">Hoạt động</SelectItem>
                   <SelectItem value="inactive">Không hoạt động</SelectItem>
                   <SelectItem value="suspended">Tạm ngừng</SelectItem>
@@ -235,12 +235,12 @@ export default function AdminCompaniesPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.industry || ''} onValueChange={(value) => setFilters({ ...filters, industry: value || undefined })}>
+              <Select value={filters.industry || 'all'} onValueChange={(value) => setFilters({ ...filters, industry: value === 'all' ? undefined : value })}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Tất cả ngành" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả ngành</SelectItem>
+                  <SelectItem value="all">Tất cả ngành</SelectItem>
                   <SelectItem value="technology">Công nghệ</SelectItem>
                   <SelectItem value="finance">Tài chính</SelectItem>
                   <SelectItem value="healthcare">Y tế</SelectItem>
@@ -250,12 +250,12 @@ export default function AdminCompaniesPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.companySize || ''} onValueChange={(value) => setFilters({ ...filters, companySize: value || undefined })}>
+              <Select value={filters.companySize || 'all'} onValueChange={(value) => setFilters({ ...filters, companySize: value === 'all' ? undefined : value })}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Quy mô" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả quy mô</SelectItem>
+                  <SelectItem value="all">Tất cả quy mô</SelectItem>
                   <SelectItem value="1-10">1-10 nhân viên</SelectItem>
                   <SelectItem value="11-50">11-50 nhân viên</SelectItem>
                   <SelectItem value="51-200">51-200 nhân viên</SelectItem>

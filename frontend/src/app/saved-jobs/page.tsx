@@ -133,17 +133,9 @@ export default function SavedJobsPage() {
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="outline" size="sm" className="text-[#f26b38] border-[#f26b38] hover:bg-[#f26b38] hover:text-white">
-                  <Home className="h-4 w-4 mr-2" />
-                  Trang chủ
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold">Việc làm đã lưu</h1>
-                <p className="text-gray-600 mt-1">Danh sách các công việc bạn đã đánh dấu để ứng tuyển sau</p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold">Việc làm đã lưu</h1>
+              <p className="text-gray-600 mt-1">Danh sách các công việc bạn đã đánh dấu để ứng tuyển sau</p>
             </div>
           </div>
 

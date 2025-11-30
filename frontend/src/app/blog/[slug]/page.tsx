@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import {
@@ -140,6 +140,239 @@ const staticBlogPosts = [
     commentCount: 38,
     publishedAt: "2024-11-20T00:00:00Z",
     readingTime: 6
+  },
+  {
+    id: "4",
+    slug: "cach-viet-cv-an-tuong-de-gay-chu-y-voi-nha-tuyen-dung",
+    title: "Cách viết CV ấn tượng để gây chú ý với nhà tuyển dụng",
+    content: `
+      <h2>Tầm quan trọng của CV trong quá trình ứng tuyển</h2>
+      <p>CV là công cụ marketing bản thân đầu tiên mà bạn gửi đến nhà tuyển dụng. Một CV ấn tượng không chỉ giúp bạn vượt qua vòng lọc sơ loại mà còn tạo ấn tượng tốt ngay từ đầu.</p>
+
+      <h2>Nguyên tắc cơ bản khi viết CV</h2>
+      <p>CV cần được thiết kế chuyên nghiệp, dễ đọc và tập trung vào những thông tin quan trọng nhất. Hãy sử dụng ngôn ngữ hành động và định lượng thành tích khi có thể.</p>
+
+      <h2>Cấu trúc CV hiệu quả</h2>
+      <ul>
+        <li><strong>Thông tin cá nhân:</strong> Họ tên, thông tin liên hệ, LinkedIn profile</li>
+        <li><strong>Tóm tắt chuyên nghiệp:</strong> Giới thiệu ngắn gọn về bản thân</li>
+        <li><strong>Kinh nghiệm làm việc:</strong> Liệt kê theo thứ tự thời gian, tập trung vào thành tích</li>
+        <li><strong>Học vấn:</strong> Bằng cấp, chứng chỉ liên quan</li>
+        <li><strong>Kỹ năng:</strong> Phân chia theo nhóm và mức độ thành thạo</li>
+      </ul>
+
+      <h2>Lỗi phổ biến cần tránh</h2>
+      <p>Tránh viết CV quá dài, sử dụng font chữ lạ, hoặc đưa thông tin cá nhân không liên quan. Hãy tùy chỉnh CV cho từng vị trí ứng tuyển.</p>
+
+      <h2>Mẹo để CV nổi bật</h2>
+      <p>Sử dụng từ khóa phù hợp với ngành nghề, thêm portfolio hoặc dự án cá nhân, và đảm bảo CV được kiểm tra lỗi chính tả kỹ lưỡng.</p>
+
+      <h2>Kết luận</h2>
+      <p>Viết CV là quá trình kể chuyện về hành trình nghề nghiệp của bạn. Hãy đầu tư thời gian để tạo ra một CV phản ánh đúng giá trị và tiềm năng của bạn.</p>
+    `,
+    excerpt: "Hướng dẫn đầy đủ cách tạo CV ấn tượng, chuyên nghiệp để thu hút sự chú ý của nhà tuyển dụng từ cái nhìn đầu tiên...",
+    featuredImage: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjByZXN1bWV8ZW58MXx8fHwxNzY0MzM5NjQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+    author: {
+      id: "1",
+      name: "Nguyễn Văn A",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+      bio: "Chuyên gia phát triển sự nghiệp với hơn 10 năm kinh nghiệm trong lĩnh vực tuyển dụng."
+    },
+    tags: ["CV", "Tuyển dụng", "Phát triển sự nghiệp"],
+    viewCount: 2450,
+    likeCount: 198,
+    commentCount: 67,
+    publishedAt: "2024-11-18T00:00:00Z",
+    readingTime: 8
+  },
+  {
+    id: "5",
+    slug: "bi-quyet-phong-van-thanh-cong-trong-thoi-dai-so",
+    title: "Bí quyết phỏng vấn thành công trong thời đại số",
+    content: `
+      <h2>Xu hướng phỏng vấn trực tuyến</h2>
+      <p>Với sự phát triển của công nghệ, phỏng vấn trực tuyến đã trở thành phương thức phổ biến. Việc chuẩn bị kỹ lưỡng cho các cuộc phỏng vấn online là yếu tố quyết định thành công.</p>
+
+      <h2>Chuẩn bị kỹ thuật</h2>
+      <p>Đảm bảo kết nối internet ổn định, chọn không gian yên tĩnh, kiểm tra camera và micro. Sử dụng nền tảng phỏng vấn chuyên nghiệp và làm quen với các tính năng.</p>
+
+      <h2>Nội dung chuẩn bị</h2>
+      <p>Nghiên cứu kỹ về công ty, chuẩn bị câu trả lời cho các câu hỏi thường gặp, và chuẩn bị câu hỏi để hỏi nhà tuyển dụng. Luyện tập trước gương hoặc với bạn bè.</p>
+
+      <h2>Thể hiện bản thân</h2>
+      <p>Mặc trang phục chuyên nghiệp, duy trì giao tiếp bằng mắt, thể hiện sự nhiệt tình và tự tin. Sử dụng ngôn ngữ cơ thể tích cực và trả lời rõ ràng, logic.</p>
+
+      <h2>Câu hỏi thường gặp</h2>
+      <ul>
+        <li>"Hãy kể về bản thân"</li>
+        <li>"Điểm mạnh/yếu của bạn là gì?"</li>
+        <li>"Tại sao bạn muốn làm việc ở đây?"</li>
+        <li>"Bạn thấy mình trong 5 năm tới như thế nào?"</li>
+      </ul>
+
+      <h2>Sau phỏng vấn</h2>
+      <p>Gửi email cảm ơn, theo dõi kết quả và học hỏi từ trải nghiệm để cải thiện lần sau.</p>
+
+      <h2>Kết luận</h2>
+      <p>Phỏng vấn thành công đòi hỏi sự chuẩn bị kỹ lưỡng và sự tự tin. Hãy luôn học hỏi và cải thiện kỹ năng phỏng vấn của mình.</p>
+    `,
+    excerpt: "Hướng dẫn đầy đủ cách chuẩn bị và thực hiện phỏng vấn trực tuyến thành công trong kỷ nguyên số hóa...",
+    featuredImage: "https://images.unsplash.com/photo-1552664730-d307ca884978?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aXJ0dWFsJTIwaW50ZXJ2aWV3fGVufDF8fHx8MTc2NDMzOTY0M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+    author: {
+      id: "1",
+      name: "Nguyễn Văn A",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+      bio: "Chuyên gia phát triển sự nghiệp với hơn 10 năm kinh nghiệm trong lĩnh vực tuyển dụng."
+    },
+    tags: ["Phỏng vấn", "Tuyển dụng", "Kỹ năng mềm"],
+    viewCount: 3120,
+    likeCount: 245,
+    commentCount: 89,
+    publishedAt: "2024-11-15T00:00:00Z",
+    readingTime: 10
+  },
+  {
+    id: "6",
+    slug: "xay-dung-thuong-hieu-ca-nhan-tren-linkedin",
+    title: "Xây dựng thương hiệu cá nhân trên LinkedIn",
+    content: `
+      <h2>Tầm quan trọng của Personal Branding</h2>
+      <p>Trong thời đại số hóa, thương hiệu cá nhân đóng vai trò quan trọng trong sự nghiệp. LinkedIn là nền tảng lý tưởng để xây dựng và phát triển thương hiệu cá nhân của bạn.</p>
+
+      <h2>Hồ sơ LinkedIn chuyên nghiệp</h2>
+      <p>Ảnh đại diện chuyên nghiệp, tiêu đề hấp dẫn, tóm tắt cá nhân ấn tượng và kinh nghiệm làm việc chi tiết là những yếu tố cơ bản để tạo ấn tượng tốt.</p>
+
+      <h2>Chiến lược nội dung</h2>
+      <p>Chia sẻ kiến thức chuyên môn, bình luận về xu hướng ngành, kết nối với cộng đồng và tham gia các cuộc thảo luận để tăng visibility và credibility.</p>
+
+      <h2>Mạng lưới quan hệ</h2>
+      <p>Kết nối có chọn lọc với các chuyên gia trong ngành, tham gia nhóm chuyên ngành và tương tác tích cực với mạng lưới của bạn.</p>
+
+      <h2>Xây dựng uy tín</h2>
+      <p>Viết bài đăng chất lượng, chia sẻ thành tựu, nhận endorsements và recommendations. Tham gia các khóa học để nâng cao kỹ năng.</p>
+
+      <h2>Đo lường và điều chỉnh</h2>
+      <p>Theo dõi các chỉ số như số lượng kết nối, tương tác, và điều chỉnh chiến lược dựa trên kết quả để tối ưu hóa hiệu quả.</p>
+
+      <h2>Kết luận</h2>
+      <p>Xây dựng thương hiệu cá nhân là quá trình lâu dài đòi hỏi sự kiên trì và nhất quán. Hãy bắt đầu ngay hôm nay để tạo dựng vị thế của bạn trong ngành.</p>
+    `,
+    excerpt: "Hướng dẫn chi tiết cách xây dựng và phát triển thương hiệu cá nhân chuyên nghiệp trên LinkedIn...",
+    featuredImage: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsZW5kaW4lMjBwcm9maWxlfGVufDF8fHx8MTc2NDMzOTY0M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+    author: {
+      id: "1",
+      name: "Nguyễn Văn A",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+      bio: "Chuyên gia phát triển sự nghiệp với hơn 10 năm kinh nghiệm trong lĩnh vực tuyển dụng."
+    },
+    tags: ["LinkedIn", "Personal Branding", "Mạng xã hội"],
+    viewCount: 2780,
+    likeCount: 312,
+    commentCount: 124,
+    publishedAt: "2024-11-12T00:00:00Z",
+    readingTime: 9
+  },
+  {
+    id: "7",
+    slug: "quan-ly-thoi-gian-hieu-qua-cho-nguoi-di-lam",
+    title: "Quản lý thời gian hiệu quả cho người đi làm",
+    content: `
+      <h2>Tầm quan trọng của quản lý thời gian</h2>
+      <p>Trong môi trường làm việc cạnh tranh ngày nay, khả năng quản lý thời gian hiệu quả không chỉ giúp bạn hoàn thành công việc mà còn tạo điều kiện để phát triển cá nhân và sự nghiệp.</p>
+
+      <h2>Đánh giá thời gian hiện tại</h2>
+      <p>Bước đầu tiên là theo dõi cách bạn sử dụng thời gian trong một tuần. Ghi chép lại các hoạt động để xác định những khoảng thời gian bị lãng phí.</p>
+
+      <h2>Thiết lập ưu tiên</h2>
+      <p>Sử dụng ma trận Eisenhower để phân loại công việc theo mức độ quan trọng và urgent. Tập trung vào những nhiệm vụ quan trọng nhưng không urgent để phát triển lâu dài.</p>
+
+      <h2>Kỹ thuật quản lý thời gian</h2>
+      <ul>
+        <li><strong>Pomodoro Technique:</strong> Làm việc tập trung 25 phút, nghỉ 5 phút</li>
+        <li><strong>Time Blocking:</strong> Phân bổ thời gian cụ thể cho từng nhiệm vụ</li>
+        <li><strong>Two-Minute Rule:</strong> Nếu việc mất dưới 2 phút, làm ngay</li>
+        <li><strong>Eat the Frog:</strong> Làm việc khó nhất trước tiên</li>
+      </ul>
+
+      <h2>Công cụ hỗ trợ</h2>
+      <p>Sử dụng ứng dụng như Todoist, Trello, Notion hoặc Google Calendar để lên kế hoạch và theo dõi tiến độ. Đồng bộ hóa giữa các thiết bị để truy cập mọi lúc.</p>
+
+      <h2>Tránh phân tâm</h2>
+      <p>Tắt thông báo, tạo không gian làm việc yên tĩnh, và học cách từ chối những yêu cầu không cần thiết để tập trung vào mục tiêu chính.</p>
+
+      <h2>Cân bằng cuộc sống</h2>
+      <p>Quản lý thời gian hiệu quả không chỉ cho công việc mà còn cho cuộc sống cá nhân. Đừng quên dành thời gian cho gia đình, sức khỏe và sở thích.</p>
+
+      <h2>Kết luận</h2>
+      <p>Quản lý thời gian là kỹ năng có thể học được. Hãy bắt đầu với những thay đổi nhỏ và kiên trì áp dụng để thấy sự khác biệt trong cuộc sống và sự nghiệp.</p>
+    `,
+    excerpt: "Hướng dẫn chi tiết các phương pháp và kỹ thuật quản lý thời gian hiệu quả cho người đi làm trong môi trường cạnh tranh...",
+    featuredImage: "https://images.unsplash.com/photo-1434626881859-194d67b2b86f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0aW1lJTIwbWFuYWdlbWVudHxlbnwxfHx8fDE3NjQzMzk2NDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    author: {
+      id: "1",
+      name: "Nguyễn Văn A",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+      bio: "Chuyên gia phát triển sự nghiệp với hơn 10 năm kinh nghiệm trong lĩnh vực tuyển dụng."
+    },
+    tags: ["Quản lý thời gian", "Hiệu suất", "Sản xuất"],
+    viewCount: 1980,
+    likeCount: 167,
+    commentCount: 56,
+    publishedAt: "2024-11-10T00:00:00Z",
+    readingTime: 7
+  },
+  {
+    id: "8",
+    slug: "xu-huong-tuyen-dung-2025-ai-va-cong-nghe-moi",
+    title: "Xu hướng tuyển dụng 2025: AI và công nghệ mới",
+    content: `
+      <h2>Thị trường lao động 2025</h2>
+      <p>Năm 2025 chứng kiến sự thay đổi mạnh mẽ trong thị trường lao động với sự trỗi dậy của AI và các công nghệ mới. Các nhà tuyển dụng đang tìm kiếm những kỹ năng phù hợp với tương lai.</p>
+
+      <h2>Vai trò của AI trong tuyển dụng</h2>
+      <p>AI không chỉ thay thế con người mà còn bổ sung và nâng cao hiệu quả tuyển dụng. Các công cụ AI giúp sàng lọc CV, phỏng vấn sơ loại và dự đoán phù hợp ứng viên.</p>
+
+      <h2>Kỹ năng AI quan trọng</h2>
+      <ul>
+        <li><strong>Prompt Engineering:</strong> Viết prompt hiệu quả cho AI</li>
+        <li><strong>Machine Learning:</strong> Hiểu và áp dụng ML cơ bản</li>
+        <li><strong>Data Analysis:</strong> Phân tích dữ liệu với AI</li>
+        <li><strong>AI Ethics:</strong> Hiểu đạo đức trong AI</li>
+        <li><strong>Automation:</strong> Thiết kế quy trình tự động</li>
+      </ul>
+
+      <h2>Công nghệ mới nổi</h2>
+      <p>Web3, Metaverse, Quantum Computing, Edge Computing và Sustainable Technology là những lĩnh vực đang phát triển mạnh và cần nguồn nhân lực chất lượng cao.</p>
+
+      <h2>Thay đổi trong cách làm việc</h2>
+      <p>Mô hình hybrid work, remote-first, và gig economy ngày càng phổ biến. Các kỹ năng mềm như thích ứng thay đổi và học tập liên tục trở nên quan trọng hơn bao giờ hết.</p>
+
+      <h2>Chiến lược phát triển nghề nghiệp</h2>
+      <p>Học tập liên tục, cập nhật xu hướng công nghệ, xây dựng portfolio kỹ thuật số và networking trong cộng đồng công nghệ là những bước đi quan trọng.</p>
+
+      <h2>Dự báo ngành nghề</h2>
+      <p>Các ngành như AI/ML Engineering, Cloud Architecture, Cybersecurity, Data Science, và UX/UI Design sẽ tiếp tục tăng trưởng mạnh trong những năm tới.</p>
+
+      <h2>Lời khuyên cho người lao động</h2>
+      <p>Đừng sợ hãi thay đổi mà hãy chủ động học hỏi. Sự kết hợp giữa kỹ năng kỹ thuật và kỹ năng mềm sẽ tạo nên lợi thế cạnh tranh trong thị trường lao động tương lai.</p>
+
+      <h2>Kết luận</h2>
+      <p>Thị trường lao động 2025 đòi hỏi sự linh hoạt và khả năng thích ứng. Những ai sẵn sàng học hỏi và đổi mới sẽ là những người thành công trong kỷ nguyên số.</p>
+    `,
+    excerpt: "Phân tích xu hướng tuyển dụng 2025 với trọng tâm vào AI, công nghệ mới và những kỹ năng cần thiết cho tương lai...",
+    featuredImage: "https://images.unsplash.com/photo-1677442136019-21780ecad995?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhaSUyMHRlY2hub2xvZ3xlbnwxfHx8fDE3NjQzMzk2NDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    author: {
+      id: "1",
+      name: "Nguyễn Văn A",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+      bio: "Chuyên gia phát triển sự nghiệp với hơn 10 năm kinh nghiệm trong lĩnh vực tuyển dụng."
+    },
+    tags: ["AI", "Xu hướng", "Công nghệ", "Tuyển dụng"],
+    viewCount: 4250,
+    likeCount: 387,
+    commentCount: 156,
+    publishedAt: "2024-11-08T00:00:00Z",
+    readingTime: 12
   }
 ];
 
@@ -164,10 +397,15 @@ interface BlogPost {
   readingTime?: number;
 }
 
-export default function BlogDetailPage() {
-  const params = useParams();
+interface BlogDetailPageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+}
+
+export default function BlogDetailPage({ params }: BlogDetailPageProps) {
+  const resolvedParams = use(params);
   const router = useRouter();
-  const slug = params.slug as string;
 
   const [blogPost, setBlogPost] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -179,13 +417,13 @@ export default function BlogDetailPage() {
 
   useEffect(() => {
     const fetchBlogPost = async () => {
-      if (!slug) return;
+      if (!resolvedParams.slug) return;
 
       try {
         setIsLoading(true);
         setError(null);
 
-        const staticPost = staticBlogPosts.find((post) => post.slug === slug);
+        const staticPost = staticBlogPosts.find((post) => post.slug === resolvedParams.slug);
         if (staticPost) {
           setBlogPost(staticPost);
         } else {
@@ -201,7 +439,7 @@ export default function BlogDetailPage() {
     };
 
     fetchBlogPost();
-  }, [slug]);
+  }, [resolvedParams.slug]);
 
   const handleLike = () => {
     setIsLiked(!isLiked);

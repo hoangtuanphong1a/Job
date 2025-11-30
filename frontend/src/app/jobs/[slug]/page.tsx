@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { motion } from "framer-motion";
 import {
   MapPin,
@@ -21,6 +21,9 @@ import {
   Award,
   TrendingUp,
   Loader2,
+  User,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,12 +39,13 @@ import { ApplicationService } from "@/services/applicationService";
 import toast, { Toaster } from "react-hot-toast";
 
 interface JobDetailPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 export default function JobDetailPage({ params }: JobDetailPageProps) {
+  const resolvedParams = use(params);
   const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
   const [isSaved, setIsSaved] = useState(false);
@@ -58,16 +62,16 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
 
   useEffect(() => {
     fetchJobDetails();
-  }, [params.slug]);
+  }, [resolvedParams.slug]);
 
   const fetchJobDetails = async () => {
     try {
       setIsLoading(true);
-      console.log("Fetching job details for slug:", params.slug);
+      console.log("Fetching job details for slug:", resolvedParams.slug);
 
       // For now, we'll assume the slug is the job ID
       // In a real app, you'd need to resolve slug to job ID
-      const jobData = await jobService.getJob(params.slug);
+      const jobData = await jobService.getJob(resolvedParams.slug);
       setJob(jobData);
 
       // Check if job is saved
@@ -124,9 +128,9 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
       setIsApplied(true);
       setShowApplicationForm(false);
       toast.success("Đơn ứng tuyển đã được gửi thành công!");
-      // Navigate to dashboard after a short delay
+      // Navigate to employer dashboard after a short delay
       setTimeout(() => {
-        router.push("/dashboard/candidate");
+        router.push("/dashboard/employer");
       }, 1500);
     } catch (error) {
       console.error("Error submitting application:", error);
@@ -259,7 +263,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
                         <span className="font-semibold text-green-600">
                           {getJobSalaryDisplay(job)}
                         </span>
-                      </div>
+oa                      </div>
                     </div>
                   </div>
                 </div>
@@ -540,137 +544,288 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
       {/* Application Modal */}
       {showApplicationForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          {/* Animated Background Shapes */}
+          <div className="absolute inset-0 overflow-hidden">
+            <motion.div
+              animate={{
+                x: [0, 30, 0],
+                y: [0, -20, 0],
+              }}
+              transition={{
+                duration: 20,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl"
+            />
+            <motion.div
+              animate={{
+                x: [0, -25, 0],
+                y: [0, 30, 0],
+              }}
+              transition={{
+                duration: 25,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="absolute bottom-20 right-20 w-96 h-96 bg-orange-200/20 rounded-full blur-3xl"
+            />
+            <motion.div
+              animate={{
+                x: [0, 20, 0],
+                y: [0, -15, 0],
+              }}
+              transition={{
+                duration: 18,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="absolute top-1/2 left-1/3 w-64 h-64 bg-orange-200/15 rounded-full blur-2xl"
+            />
+          </div>
+
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+            className="relative backdrop-blur-xl bg-white/95 rounded-3xl shadow-2xl border border-white/30 max-w-lg w-full max-h-[90vh] overflow-y-auto"
           >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900">
-                  Ứng tuyển vị trí
-                </h3>
-                <button
-                  onClick={() => setShowApplicationForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="text-sm text-gray-600 mb-6">
-                <strong>{job.title}</strong> tại{" "}
-                <strong>{job.company?.name}</strong>
-              </div>
-
-              <form onSubmit={handleApply} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Họ và tên *
-                  </label>
-                  <Input
-                    required
-                    value={applicationData.fullName}
-                    onChange={(e) =>
-                      setApplicationData({
-                        ...applicationData,
-                        fullName: e.target.value,
-                      })
-                    }
-                    placeholder="Nhập họ và tên của bạn"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email *
-                  </label>
-                  <Input
-                    type="email"
-                    required
-                    value={applicationData.email}
-                    onChange={(e) =>
-                      setApplicationData({
-                        ...applicationData,
-                        email: e.target.value,
-                      })
-                    }
-                    placeholder="Nhập địa chỉ email"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Số điện thoại *
-                  </label>
-                  <Input
-                    type="tel"
-                    required
-                    value={applicationData.phone}
-                    onChange={(e) =>
-                      setApplicationData({
-                        ...applicationData,
-                        phone: e.target.value,
-                      })
-                    }
-                    placeholder="Nhập số điện thoại"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thư xin việc (tùy chọn)
-                  </label>
-                  <Textarea
-                    value={applicationData.coverLetter}
-                    onChange={(e) =>
-                      setApplicationData({
-                        ...applicationData,
-                        coverLetter: e.target.value,
-                      })
-                    }
-                    placeholder="Giới thiệu ngắn gọn về bản thân và lý do ứng tuyển..."
-                    rows={4}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    CV/Resume *
-                  </label>
-                  <Input
-                    type="file"
-                    required
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) =>
-                      setApplicationData({
-                        ...applicationData,
-                        resume: e.target.files?.[0] || null,
-                      })
-                    }
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Chấp nhận file PDF, DOC, DOCX (tối đa 5MB)
-                  </p>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
+            <div className="p-8 lg:p-10">
+              {/* Header */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-center mb-8"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                      Ứng tuyển vị trí
+                    </h3>
+                    <div className="text-sm text-gray-600">
+                      <strong className="text-gray-900">{job.title}</strong> tại{" "}
+                      <strong className="text-gray-900">{job.company?.name}</strong>
+                    </div>
+                  </div>
+                  <button
                     onClick={() => setShowApplicationForm(false)}
+                    className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-colors"
                   >
-                    Hủy
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1 bg-[#f26b38] hover:bg-[#e05a27]"
-                  >
-                    Gửi đơn ứng tuyển
-                  </Button>
+                    ✕
+                  </button>
                 </div>
-              </form>
+              </motion.div>
+
+              {/* Job Summary Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl p-6 mb-8 border border-orange-100"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-100 to-red-100 border flex items-center justify-center flex-shrink-0">
+                    <Briefcase className="h-6 w-6 text-gray-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-gray-900 mb-1 truncate">
+                      {job.title}
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-2">
+                      <div className="flex items-center gap-1">
+                        <Building2 className="h-4 w-4" />
+                        <span>{job.company?.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        <span>{getJobLocation(job)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-green-600">
+                        {getJobSalaryDisplay(job)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Application Form */}
+              <motion.form
+                onSubmit={handleApply}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="space-y-6"
+              >
+                {/* Personal Information Section */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <User className="h-5 w-5 text-orange-500" />
+                    Thông tin cá nhân
+                  </h4>
+
+                  <div className="space-y-4">
+                    {/* Full Name */}
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Họ và tên *
+                      </label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <Input
+                          required
+                          value={applicationData.fullName}
+                          onChange={(e) =>
+                            setApplicationData({
+                              ...applicationData,
+                              fullName: e.target.value,
+                            })
+                          }
+                          placeholder="Nhập họ và tên đầy đủ của bạn"
+                          className="pl-10 h-12 border-2 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-orange-500/20 border-gray-200 focus:border-orange-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email */}
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email *
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <Input
+                          type="email"
+                          required
+                          value={applicationData.email}
+                          onChange={(e) =>
+                            setApplicationData({
+                              ...applicationData,
+                              email: e.target.value,
+                            })
+                          }
+                          placeholder="Nhập địa chỉ email của bạn"
+                          className="pl-10 h-12 border-2 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-orange-500/20 border-gray-200 focus:border-orange-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Phone */}
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Số điện thoại *
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <Input
+                          type="tel"
+                          required
+                          value={applicationData.phone}
+                          onChange={(e) =>
+                            setApplicationData({
+                              ...applicationData,
+                              phone: e.target.value,
+                            })
+                          }
+                          placeholder="Nhập số điện thoại liên hệ"
+                          className="pl-10 h-12 border-2 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-orange-500/20 border-gray-200 focus:border-orange-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Application Details Section */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Send className="h-5 w-5 text-orange-500" />
+                    Chi tiết ứng tuyển
+                  </h4>
+
+                  <div className="space-y-4">
+                    {/* Cover Letter */}
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Thư xin việc (tùy chọn)
+                      </label>
+                      <Textarea
+                        value={applicationData.coverLetter}
+                        onChange={(e) =>
+                          setApplicationData({
+                            ...applicationData,
+                            coverLetter: e.target.value,
+                          })
+                        }
+                        placeholder="Giới thiệu ngắn gọn về bản thân, kinh nghiệm và lý do bạn muốn ứng tuyển vị trí này..."
+                        rows={5}
+                        className="border-2 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-orange-500/20 border-gray-200 focus:border-orange-500 resize-none"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Mô tả ngắn gọn về kinh nghiệm và động lực của bạn
+                      </p>
+                    </div>
+
+                    {/* Resume Upload */}
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        CV/Resume *
+                      </label>
+                      <div className="relative">
+                        <Input
+                          type="file"
+                          required
+                          accept=".pdf,.doc,.docx"
+                          onChange={(e) =>
+                            setApplicationData({
+                              ...applicationData,
+                              resume: e.target.files?.[0] || null,
+                            })
+                          }
+                          className="border-2 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-orange-500/20 border-gray-200 focus:border-orange-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-xl file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Chấp nhận file PDF, DOC, DOCX (tối đa 5MB)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Terms and Submit */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                  className="pt-6 border-t border-gray-200"
+                >
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 h-12 border-2 rounded-xl hover:bg-gray-50 transition-all duration-300"
+                      onClick={() => setShowApplicationForm(false)}
+                    >
+                      Hủy bỏ
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1 h-12 bg-[#f26b38] hover:bg-[#e05a27] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Gửi đơn ứng tuyển
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-gray-500 text-center mt-4">
+                    Bằng cách gửi đơn ứng tuyển, bạn đồng ý với{" "}
+                    <a href="#" className="text-orange-500 hover:underline">
+                      Chính sách bảo mật
+                    </a>{" "}
+                    của chúng tôi
+                  </p>
+                </motion.div>
+              </motion.form>
             </div>
           </motion.div>
         </div>

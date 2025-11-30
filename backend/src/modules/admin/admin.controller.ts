@@ -114,6 +114,38 @@ export class AdminController {
   }
 
   // ===== USER MANAGEMENT =====
+  @Post('users')
+  @ApiOperation({ summary: 'Create a new user (admin only)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'email' },
+        password: { type: 'string', minLength: 6 },
+        firstName: { type: 'string' },
+        lastName: { type: 'string' },
+        role: { type: 'string', enum: Object.values(RoleName) },
+      },
+      required: ['email', 'password', 'role'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'User created successfully',
+  })
+  @ApiResponse({ status: 409, description: 'User already exists' })
+  async createUser(
+    @Body() userData: {
+      email: string;
+      password: string;
+      firstName?: string;
+      lastName?: string;
+      role: RoleName;
+    },
+  ) {
+    return this.adminService.createUser(userData);
+  }
+
   @Get('users')
   @ApiOperation({ summary: 'Get all users with admin controls' })
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -355,9 +387,85 @@ export class AdminController {
     );
   }
 
+
+
+  @Get('system/logs')
+  @ApiOperation({ summary: 'Get system logs' })
+  @ApiQuery({
+    name: 'level',
+    required: false,
+    enum: ['error', 'warn', 'info', 'debug'],
+  })
+  @ApiQuery({ name: 'limit', required: false, type: Number, default: 100 })
+  @ApiResponse({
+    status: 200,
+    description: 'System logs retrieved successfully',
+  })
+  async getSystemLogs(@Query() query: { level?: string; limit?: number }) {
+    return this.adminService.getSystemLogs(query);
+  }
+
+  // ===== ANALYTICS & REPORTS =====
+  @Get('reports/user-activity')
+  @ApiOperation({ summary: 'Get user activity report' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'User activity report data' })
+  async getUserActivityReport(
+    @Query() query: { startDate?: string; endDate?: string },
+  ) {
+    return this.adminService.getUserActivityReport(query);
+  }
+
+  @Get('reports/job-market')
+  @ApiOperation({ summary: 'Get job market analysis report' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Job market analysis data' })
+  async getJobMarketReport(
+    @Query() query: { startDate?: string; endDate?: string },
+  ) {
+    return this.adminService.getJobMarketReport(query);
+  }
+
+  @Get('reports/revenue')
+  @ApiOperation({ summary: 'Get revenue report' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({
+    name: 'groupBy',
+    required: false,
+    enum: ['day', 'week', 'month'],
+  })
+  @ApiResponse({ status: 200, description: 'Revenue report data' })
+  async getRevenueReport(
+    @Query() query: { startDate?: string; endDate?: string; groupBy?: string },
+  ) {
+    return this.adminService.getRevenueReport(query);
+  }
+
   // ===== CONTENT MANAGEMENT =====
+  @Get('content/stats')
+  @ApiOperation({ summary: 'Get content management statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Content management statistics',
+    schema: {
+      type: 'object',
+      properties: {
+        totalSkills: { type: 'number' },
+        totalCategories: { type: 'number' },
+        skillsThisMonth: { type: 'number' },
+        categoriesThisMonth: { type: 'number' },
+      },
+    },
+  })
+  async getContentStats() {
+    return this.adminService.getContentStats();
+  }
+
   @Get('content/skills')
-  @ApiOperation({ summary: 'Get all skills for admin management' })
+  @ApiOperation({ summary: 'Get all skills for content management' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
@@ -419,7 +527,7 @@ export class AdminController {
   }
 
   @Get('content/job-categories')
-  @ApiOperation({ summary: 'Get all job categories for admin management' })
+  @ApiOperation({ summary: 'Get all job categories for content management' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
@@ -431,105 +539,50 @@ export class AdminController {
     return this.adminService.getAllJobCategories(query);
   }
 
-  // ===== SYSTEM MANAGEMENT =====
-  @Get('system/info')
-  @ApiOperation({ summary: 'Get system information and health status' })
-  @ApiResponse({
-    status: 200,
-    description: 'System information and health status',
-    schema: {
-      type: 'object',
-      properties: {
-        version: { type: 'string' },
-        uptime: { type: 'number' },
-        memory: { type: 'object' },
-        database: { type: 'object' },
-        environment: { type: 'string' },
-      },
-    },
-  })
-  async getSystemInfo() {
-    return this.adminService.getSystemInfo();
-  }
-
-  @Post('system/maintenance')
-  @ApiOperation({ summary: 'Run system maintenance tasks' })
+  @Post('content/job-categories')
+  @ApiOperation({ summary: 'Create new job category' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        task: {
-          type: 'string',
-          enum: [
-            'cleanup-expired-jobs',
-            'cleanup-old-notifications',
-            'reindex-database',
-            'backup-database',
-          ],
-        },
+        name: { type: 'string' },
+        description: { type: 'string' },
       },
     },
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Maintenance task executed successfully',
-  })
-  async runMaintenance(@Body() body: { task: string }) {
-    return this.adminService.runMaintenanceTask(body.task);
-  }
-
-  @Get('system/logs')
-  @ApiOperation({ summary: 'Get system logs' })
-  @ApiQuery({
-    name: 'level',
-    required: false,
-    enum: ['error', 'warn', 'info', 'debug'],
-  })
-  @ApiQuery({ name: 'limit', required: false, type: Number, default: 100 })
-  @ApiResponse({
-    status: 200,
-    description: 'System logs retrieved successfully',
-  })
-  async getSystemLogs(@Query() query: { level?: string; limit?: number }) {
-    return this.adminService.getSystemLogs(query);
-  }
-
-  // ===== ANALYTICS & REPORTS =====
-  @Get('reports/user-activity')
-  @ApiOperation({ summary: 'Get user activity report' })
-  @ApiQuery({ name: 'startDate', required: false, type: String })
-  @ApiQuery({ name: 'endDate', required: false, type: String })
-  @ApiResponse({ status: 200, description: 'User activity report data' })
-  async getUserActivityReport(
-    @Query() query: { startDate?: string; endDate?: string },
+  @ApiResponse({ status: 201, description: 'Job category created successfully' })
+  async createJobCategory(
+    @Body() body: { name: string; description?: string },
   ) {
-    return this.adminService.getUserActivityReport(query);
+    return this.adminService.createJobCategory(body);
   }
 
-  @Get('reports/job-market')
-  @ApiOperation({ summary: 'Get job market analysis report' })
-  @ApiQuery({ name: 'startDate', required: false, type: String })
-  @ApiQuery({ name: 'endDate', required: false, type: String })
-  @ApiResponse({ status: 200, description: 'Job market analysis data' })
-  async getJobMarketReport(
-    @Query() query: { startDate?: string; endDate?: string },
-  ) {
-    return this.adminService.getJobMarketReport(query);
-  }
-
-  @Get('reports/revenue')
-  @ApiOperation({ summary: 'Get revenue report' })
-  @ApiQuery({ name: 'startDate', required: false, type: String })
-  @ApiQuery({ name: 'endDate', required: false, type: String })
-  @ApiQuery({
-    name: 'groupBy',
-    required: false,
-    enum: ['day', 'week', 'month'],
+  @Put('content/job-categories/:id')
+  @ApiParam({ name: 'id', description: 'Job category ID' })
+  @ApiOperation({ summary: 'Update job category' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        description: { type: 'string' },
+      },
+    },
   })
-  @ApiResponse({ status: 200, description: 'Revenue report data' })
-  async getRevenueReport(
-    @Query() query: { startDate?: string; endDate?: string; groupBy?: string },
+  @ApiResponse({ status: 200, description: 'Job category updated successfully' })
+  async updateJobCategory(
+    @Param('id') id: string,
+    @Body() body: { name?: string; description?: string },
   ) {
-    return this.adminService.getRevenueReport(query);
+    return this.adminService.updateJobCategory(id, body);
+  }
+
+  @Delete('content/job-categories/:id')
+  @ApiParam({ name: 'id', description: 'Job category ID' })
+  @ApiOperation({ summary: 'Delete job category' })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({ status: 204, description: 'Job category deleted successfully' })
+  async deleteJobCategory(@Param('id') id: string) {
+    await this.adminService.deleteJobCategory(id);
   }
 }

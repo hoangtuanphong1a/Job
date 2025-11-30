@@ -35,7 +35,7 @@ export class ApplicationService {
   }
 
   static async getMyApplications(): Promise<Application[]> {
-    const response = await api.get('/job-applications/user/my-applications');
+    const response = await api.get('/applications/user/my-applications');
     return response.data;
   }
 
@@ -45,7 +45,7 @@ export class ApplicationService {
   }
 
   static async withdrawApplication(applicationId: string): Promise<void> {
-    await api.delete(`/job-applications/${applicationId}`);
+    await api.delete(`/applications/${applicationId}`);
   }
 
   static async getJobApplications(jobId: string): Promise<Application[]> {

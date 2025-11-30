@@ -26,6 +26,7 @@ import {
   Download,
   MessageSquare
 } from "lucide-react";
+import { adminService } from "@/services/adminService";
 
 interface Application {
   id: string;
@@ -77,31 +78,45 @@ export default function AdminApplicationsPage() {
 
   const fetchApplications = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/auth/login');
-        return;
-      }
-
-      const queryParams = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '20',
+      const params = {
+        page: currentPage,
+        limit: 20,
         ...filters
-      });
+      };
 
-      const response = await fetch(`/api/admin/applications?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await adminService.getAllApplications(params);
 
-      if (response.ok) {
-        const data = await response.json();
-        setApplications(data.applications || []);
-        setTotalPages(data.totalPages || 1);
-      }
+      // Transform the data to match our local interface
+      const transformedApplications: Application[] = response.data.map(app => ({
+        id: app.id,
+        status: app.status.toLowerCase() as Application['status'],
+        appliedDate: app.createdAt,
+        notes: app.notes,
+        job: {
+          id: app.job.id,
+          title: app.job.title,
+          company: {
+            id: app.job.company.id,
+            name: app.job.company.name
+          }
+        },
+        applicant: {
+          id: app.jobSeekerProfile.user.id,
+          fullName: `${app.jobSeekerProfile.user.firstName || ''} ${app.jobSeekerProfile.user.lastName || ''}`.trim() || app.jobSeekerProfile.user.email,
+          email: app.jobSeekerProfile.user.email,
+          phone: undefined, // Not available in admin service
+          avatar: undefined, // Not available in admin service
+          resume: undefined // Not available in admin service
+        },
+        interviewDate: undefined, // Not available in admin service
+        feedback: undefined // Not available in admin service
+      }));
+
+      setApplications(transformedApplications);
+      setTotalPages(response.totalPages || 1);
     } catch (error) {
       console.error('Error fetching applications:', error);
+      setApplications([]);
     } finally {
       setIsLoading(false);
     }
@@ -109,19 +124,8 @@ export default function AdminApplicationsPage() {
 
   const handleStatusChange = async (applicationId: string, newStatus: string, notes?: string) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/applications/${applicationId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus, notes })
-      });
-
-      if (response.ok) {
-        fetchApplications(); // Refresh the list
-      }
+      await adminService.updateApplicationStatus(applicationId, newStatus, notes);
+      fetchApplications(); // Refresh the list
     } catch (error) {
       console.error('Error updating application status:', error);
     }
@@ -216,12 +220,12 @@ export default function AdminApplicationsPage() {
                 </div>
               </div>
 
-              <Select value={filters.status || ''} onValueChange={(value) => setFilters({ ...filters, status: value || undefined })}>
+              <Select value={filters.status || 'all'} onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? undefined : value })}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
                   {getStatusOptions().map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}

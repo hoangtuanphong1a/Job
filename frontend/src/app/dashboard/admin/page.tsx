@@ -25,39 +25,7 @@ import {
   Server,
   UserCog
 } from "lucide-react";
-
-interface AdminStats {
-  users: {
-    total: number;
-    active: number;
-    newToday: number;
-  };
-  jobs: {
-    total: number;
-    active: number;
-    newToday: number;
-  };
-  companies: {
-    total: number;
-    active: number;
-    newToday: number;
-  };
-  applications: {
-    total: number;
-    pending: number;
-    newToday: number;
-  };
-  revenue: {
-    total: number;
-    thisMonth: number;
-    growth: number;
-  };
-  system: {
-    uptime: number;
-    memoryUsage: number;
-    diskUsage: number;
-  };
-}
+import { adminService, AdminStats } from "@/services/adminService";
 
 interface RecentActivity {
   id: string;
@@ -86,23 +54,9 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        router.push('/auth/login');
-        return;
-      }
-
-      // Fetch admin dashboard overview
-      const response = await fetch('/api/admin/dashboard/overview', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      }
+      // Fetch admin dashboard overview using the service
+      const data = await adminService.getDashboardOverview();
+      setStats(data);
 
       // Mock recent activity data (in real app, this would come from API)
       setRecentActivity([

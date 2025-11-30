@@ -25,6 +25,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import Link from "next/link";
+import UserService, { UpdateProfileData } from "@/services/userService";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -138,9 +139,39 @@ export default function SettingsPage() {
   };
 
   const handleSaveProfile = async () => {
-    // In a real app, this would make an API call
-    console.log("Saving profile:", formData);
-    alert("Thông tin cá nhân đã được cập nhật!");
+    try {
+      // Prepare data for API call
+      const updateData: UpdateProfileData = {
+        phone: formData.phone || undefined,
+        bio: formData.bio || undefined,
+        address: formData.location || undefined, // Map location to address
+      };
+
+      // Split name into firstName and lastName (simple split by space)
+      const nameParts = formData.name.trim().split(' ');
+      if (nameParts.length > 1) {
+        updateData.lastName = nameParts.pop() || '';
+        updateData.firstName = nameParts.join(' ');
+      } else {
+        updateData.firstName = formData.name;
+        updateData.lastName = '';
+      }
+
+      // Call the backend API to update profile
+      const updatedUser = await UserService.updateProfile(updateData);
+
+      // Save updated user data back to localStorage
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      // Update local state
+      setUser(updatedUser);
+
+      console.log("Profile saved successfully:", updatedUser);
+      alert("Thông tin cá nhân đã được cập nhật!");
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      alert("Có lỗi xảy ra khi lưu thông tin! Vui lòng thử lại.");
+    }
   };
 
   const handleChangePassword = async () => {
@@ -148,9 +179,27 @@ export default function SettingsPage() {
       alert("Mật khẩu xác nhận không khớp!");
       return;
     }
-    // In a real app, this would make an API call
-    console.log("Changing password");
-    alert("Mật khẩu đã được thay đổi!");
+
+    try {
+      await UserService.changePassword({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+      });
+
+      // Clear password fields after successful change
+      setFormData(prev => ({
+        ...prev,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
+
+      console.log("Password changed successfully");
+      alert("Mật khẩu đã được thay đổi!");
+    } catch (error) {
+      console.error("Error changing password:", error);
+      alert("Có lỗi xảy ra khi đổi mật khẩu! Vui lòng kiểm tra mật khẩu hiện tại.");
+    }
   };
 
   const handleSaveNotifications = async () => {
@@ -184,23 +233,11 @@ export default function SettingsPage() {
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-[#f26b38] border-[#f26b38] hover:bg-[#f26b38] hover:text-white"
-                >
-                  <Home className="h-4 w-4 mr-2" />
-                  Trang chủ
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold">Cài đặt tài khoản</h1>
-                <p className="text-gray-600 mt-1">
-                  Quản lý thông tin và cài đặt của bạn
-                </p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold">Cài đặt tài khoản</h1>
+              <p className="text-gray-600 mt-1">
+                Quản lý thông tin và cài đặt của bạn
+              </p>
             </div>
           </div>
 

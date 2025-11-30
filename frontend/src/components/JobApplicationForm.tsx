@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useRouter } from "next/navigation";
 import ApplicationService, { CreateApplicationDto } from "@/services/applicationService";
 import UploadService from "@/services/uploadService";
 
@@ -37,6 +38,7 @@ export default function JobApplicationForm({
   onCancel,
   isModal = true
 }: JobApplicationFormProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState<ApplicationFormData>({
     fullName: "",
     email: "",
@@ -98,6 +100,7 @@ export default function JobApplicationForm({
 
       setSuccess(true);
       setTimeout(() => {
+        router.push("/dashboard/employer");
         onSuccess?.();
       }, 2000);
 

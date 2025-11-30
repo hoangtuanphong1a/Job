@@ -26,6 +26,7 @@ import {
   ArrowLeft,
   ExternalLink
 } from "lucide-react";
+import { adminService, Job as AdminJob } from "@/services/adminService";
 
 interface Job {
   id: string;
@@ -72,29 +73,37 @@ export default function AdminJobsPage() {
 
   const fetchJobs = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/auth/login');
-        return;
-      }
-
-      const queryParams = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '20',
+      const params = {
+        page: currentPage,
+        limit: 20,
         ...filters
-      });
+      };
 
-      const response = await fetch(`/api/admin/jobs?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await adminService.getAllJobs(params);
 
-      if (response.ok) {
-        const data = await response.json();
-        setJobs(data.jobs || []);
-        setTotalPages(data.totalPages || 1);
-      }
+      // Transform the data to match UI expectations
+      const transformedJobs: Job[] = response.data.map(job => ({
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        location: 'Not specified', // Not available in current backend
+        salary: job.salaryMin && job.salaryMax ? {
+          min: job.salaryMin,
+          max: job.salaryMax,
+          currency: 'VND'
+        } : undefined,
+        status: job.status as Job['status'],
+        postedDate: job.createdAt,
+        expiryDate: job.expiresAt || undefined,
+        applicationsCount: job.applications?.length || 0,
+        viewsCount: 0, // Not available in current backend
+        category: 'General', // Not available in current backend
+        employmentType: 'Full-time', // Not available in current backend
+        description: job.description
+      }));
+
+      setJobs(transformedJobs);
+      setTotalPages(response.totalPages);
     } catch (error) {
       console.error('Error fetching jobs:', error);
     } finally {
@@ -104,19 +113,8 @@ export default function AdminJobsPage() {
 
   const handleStatusChange = async (jobId: string, newStatus: string) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/jobs/${jobId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-
-      if (response.ok) {
-        fetchJobs(); // Refresh the list
-      }
+      await adminService.updateJobStatus(jobId, newStatus);
+      fetchJobs(); // Refresh the list
     } catch (error) {
       console.error('Error updating job status:', error);
     }
@@ -207,12 +205,12 @@ export default function AdminJobsPage() {
                 </div>
               </div>
 
-              <Select value={filters.status || ''} onValueChange={(value) => setFilters({ ...filters, status: value || undefined })}>
+              <Select value={filters.status || 'all'} onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? undefined : value })}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
                   <SelectItem value="published">Đã xuất bản</SelectItem>
                   <SelectItem value="draft">Bản nháp</SelectItem>
                   <SelectItem value="closed">Đã đóng</SelectItem>
@@ -221,12 +219,12 @@ export default function AdminJobsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.category || ''} onValueChange={(value) => setFilters({ ...filters, category: value || undefined })}>
+              <Select value={filters.category || 'all'} onValueChange={(value) => setFilters({ ...filters, category: value === 'all' ? undefined : value })}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Tất cả danh mục" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả danh mục</SelectItem>
+                  <SelectItem value="all">Tất cả danh mục</SelectItem>
                   <SelectItem value="technology">Công nghệ</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
                   <SelectItem value="sales">Bán hàng</SelectItem>

@@ -23,13 +23,14 @@ import {
   Users,
   TrendingUp
 } from "lucide-react";
+import { adminService } from "@/services/adminService";
 
 interface Skill {
   id: string;
   name: string;
   description?: string;
   category?: string;
-  usageCount: number;
+  usageCount?: number;
   createdAt: string;
 }
 
@@ -37,8 +38,9 @@ interface JobCategory {
   id: string;
   name: string;
   description?: string;
-  jobCount: number;
+  usageCount?: number;
   createdAt: string;
+  jobCount?: number;
 }
 
 interface ContentStats {
@@ -70,41 +72,17 @@ export default function AdminContentPage() {
 
   const fetchContentData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/auth/login');
-        return;
-      }
-
       // Fetch stats
-      const statsResponse = await fetch('/api/admin/content/stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        setStats(statsData);
-      }
+      const statsData = await adminService.getContentStats();
+      setStats(statsData);
 
       // Fetch skills or categories based on active tab
       if (activeTab === 'skills') {
-        const skillsResponse = await fetch('/api/admin/content/skills', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (skillsResponse.ok) {
-          const skillsData = await skillsResponse.json();
-          setSkills(skillsData.skills || []);
-        }
+        const skillsResponse = await adminService.getAllSkills();
+        setSkills(skillsResponse.data || []);
       } else {
-        const categoriesResponse = await fetch('/api/admin/content/job-categories', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (categoriesResponse.ok) {
-          const categoriesData = await categoriesResponse.json();
-          setCategories(categoriesData.categories || []);
-        }
+        const categoriesResponse = await adminService.getAllJobCategories();
+        setCategories(categoriesResponse.data || []);
       }
     } catch (error) {
       console.error('Error fetching content data:', error);
@@ -115,20 +93,9 @@ export default function AdminContentPage() {
 
   const handleAddSkill = async (skillData: { name: string; description?: string; category?: string }) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/content/skills', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(skillData)
-      });
-
-      if (response.ok) {
-        fetchContentData();
-        setShowAddForm(false);
-      }
+      await adminService.createSkill(skillData);
+      fetchContentData();
+      setShowAddForm(false);
     } catch (error) {
       console.error('Error adding skill:', error);
     }
@@ -136,20 +103,9 @@ export default function AdminContentPage() {
 
   const handleAddCategory = async (categoryData: { name: string; description?: string }) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/content/job-categories', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(categoryData)
-      });
-
-      if (response.ok) {
-        fetchContentData();
-        setShowAddForm(false);
-      }
+      await adminService.createJobCategory(categoryData);
+      fetchContentData();
+      setShowAddForm(false);
     } catch (error) {
       console.error('Error adding category:', error);
     }
@@ -157,20 +113,9 @@ export default function AdminContentPage() {
 
   const handleUpdateSkill = async (id: string, skillData: { name?: string; description?: string; category?: string }) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/content/skills/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(skillData)
-      });
-
-      if (response.ok) {
-        fetchContentData();
-        setEditingItem(null);
-      }
+      await adminService.updateSkill(id, skillData);
+      fetchContentData();
+      setEditingItem(null);
     } catch (error) {
       console.error('Error updating skill:', error);
     }
@@ -178,20 +123,9 @@ export default function AdminContentPage() {
 
   const handleUpdateCategory = async (id: string, categoryData: { name?: string; description?: string }) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/content/job-categories/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(categoryData)
-      });
-
-      if (response.ok) {
-        fetchContentData();
-        setEditingItem(null);
-      }
+      await adminService.updateJobCategory(id, categoryData);
+      fetchContentData();
+      setEditingItem(null);
     } catch (error) {
       console.error('Error updating category:', error);
     }
@@ -201,15 +135,8 @@ export default function AdminContentPage() {
     if (!confirm('Bạn có chắc chắn muốn xóa kỹ năng này?')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/content/skills/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        fetchContentData();
-      }
+      await adminService.deleteSkill(id);
+      fetchContentData();
     } catch (error) {
       console.error('Error deleting skill:', error);
     }
@@ -219,15 +146,8 @@ export default function AdminContentPage() {
     if (!confirm('Bạn có chắc chắn muốn xóa danh mục này?')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/content/job-categories/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        fetchContentData();
-      }
+      await adminService.deleteJobCategory(id);
+      fetchContentData();
     } catch (error) {
       console.error('Error deleting category:', error);
     }
@@ -317,7 +237,7 @@ export default function AdminContentPage() {
                 </div>
               </div>
               <div className="text-2xl font-bold mb-1">
-                {skills.reduce((sum, skill) => sum + skill.usageCount, 0)}
+                {skills.reduce((sum, skill) => sum + (skill.usageCount || 0), 0)}
               </div>
               <div className="text-sm text-gray-600">Lượt sử dụng kỹ năng</div>
             </Card>
@@ -329,7 +249,7 @@ export default function AdminContentPage() {
                 </div>
               </div>
               <div className="text-2xl font-bold mb-1">
-                {categories.reduce((sum, cat) => sum + cat.jobCount, 0)}
+                {categories.reduce((sum, cat) => sum + (cat.jobCount || 0), 0)}
               </div>
               <div className="text-sm text-gray-600">Việc làm theo danh mục</div>
             </Card>
