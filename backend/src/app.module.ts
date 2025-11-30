@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { ScheduleModule } from '@nestjs/schedule';
 import { MulterModule } from '@nestjs/platform-express';
 import { join } from 'path';
 import { diskStorage } from 'multer';
@@ -85,6 +86,9 @@ import { RolesGuard } from './modules/common/guards/roles.guard';
 
     // Passport configuration
     PassportModule.register({ defaultStrategy: 'jwt' }),
+
+    // Schedule configuration for cron jobs
+    ScheduleModule.forRoot(),
 
     // File upload configuration
     MulterModule.register({

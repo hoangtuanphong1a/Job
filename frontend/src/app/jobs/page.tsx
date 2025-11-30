@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import { JobsHero } from "@/components/JobsHero";
 import { api } from "@/services/api";
+import toast from "react-hot-toast";
 
 interface Job {
   id: string;
@@ -92,11 +93,38 @@ export default function JobsPage() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const refreshParam = urlParams.get('refresh');
+    const successParam = urlParams.get('success');
+    const jobIdParam = urlParams.get('jobId');
+
     if (refreshParam) {
-      console.log('Refresh parameter detected, forcing jobs fetch...');
+      console.log('🔄 Refresh parameter detected, forcing jobs fetch...');
       fetchJobs();
-      // Clean up URL
-      window.history.replaceState({}, '', '/jobs');
+
+      // Show success toast if redirected from job creation
+      if (successParam === 'true') {
+        console.log('🎉 Job creation success detected, showing toast...');
+        console.log('🆔 Job ID:', jobIdParam);
+
+        toast.success('🎉 Đăng tin tuyển dụng thành công!', {
+          duration: 5000,
+          style: {
+            background: '#10B981',
+            color: '#fff',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            border: 'none',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+          },
+          icon: '✅'
+        });
+      }
+
+      // Clean up URL after showing success message
+      setTimeout(() => {
+        window.history.replaceState({}, '', '/jobs');
+        console.log('🧹 URL cleaned up after success notification');
+      }, 1000);
     }
   }, []);
 
@@ -165,6 +193,7 @@ export default function JobsPage() {
 
       const response = await api.get('/jobs');
       console.log('📡 API Response received');
+      console.log('📄 Full response:', response);
 
       const data = response.data;
       // API returns paginated response: {data: [...], total, page, limit, totalPages}
@@ -181,6 +210,8 @@ export default function JobsPage() {
           status: data.data[0].status,
           createdAt: data.data[0].createdAt
         });
+      } else {
+        console.log('⚠️ No jobs data in response');
       }
 
       setJobs(data.data || []);
@@ -188,6 +219,15 @@ export default function JobsPage() {
     } catch (error) {
       console.error('❌ Error fetching jobs:', error);
       console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
+      console.error('❌ Full error object:', error);
+
+      // Try to get more details from axios error
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((error as any)?.response) {
+        console.error('❌ Response status:', (error as any).response.status);
+        console.error('❌ Response data:', (error as any).response.data);
+      }
+
       setJobs([]);
     } finally {
       setIsLoading(false);

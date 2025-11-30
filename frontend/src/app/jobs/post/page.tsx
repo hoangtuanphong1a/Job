@@ -207,12 +207,35 @@ export default function PostJobPage() {
 
       toast.dismiss(loadingToast);
 
-      toast.success('Đăng tin tuyển dụng thành công!');
+      console.log('🎉 JOB POSTING SUCCESSFUL!');
+      console.log('✅ Đăng tin tuyển dụng thành công!');
+      console.log('📍 Job details:', {
+        id: createdJob?.id,
+        title: createdJob?.title,
+        company: createdJob?.company?.name,
+        status: createdJob?.status,
+        createdAt: createdJob?.createdAt
+      });
 
-      console.log('🔄 Redirecting to jobs page with refresh parameter...');
-      // Redirect to jobs page with a timestamp to force refresh
-      const timestamp = Date.now();
-      router.push(`/jobs?refresh=${timestamp}`);
+      toast.success('🎉 Đăng tin tuyển dụng thành công!', {
+        duration: 4000,
+        style: {
+          background: '#10B981',
+          color: '#fff',
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }
+      });
+
+      console.log('🔄 Redirecting to jobs page in 2 seconds...');
+      setTimeout(() => {
+        console.log('🚀 Executing redirect to jobs page...');
+        const timestamp = Date.now();
+        const redirectUrl = `/jobs?refresh=${timestamp}&success=true&jobId=${createdJob?.id}`;
+        console.log('📍 Redirect URL:', redirectUrl);
+        router.push(redirectUrl);
+        console.log('✅ Redirect completed!');
+      }, 2000);
     } catch (error: unknown) {
       console.error('Error posting job:', error);
       toast.dismiss(loadingToast);

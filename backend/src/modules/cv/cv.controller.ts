@@ -187,4 +187,71 @@ export class CvController {
   async getMyStats(@Request() req) {
     return this.cvService.getCvStats(req.user.id);
   }
+
+  @Post(':id/set-primary')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'id', description: 'CV ID' })
+  @ApiOperation({ summary: 'Set CV as primary (default for applications)' })
+  @ApiResponse({
+    status: 200,
+    description: 'CV set as primary successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - not CV owner or CV not published',
+  })
+  async setPrimary(@Param('id') id: string, @Request() req) {
+    return this.cvService.setPrimaryCv(id, req.user.id);
+  }
+
+  @Post(':id/unset-primary')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'id', description: 'CV ID' })
+  @ApiOperation({ summary: 'Unset CV as primary' })
+  @ApiResponse({
+    status: 200,
+    description: 'CV unset as primary successfully',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - not CV owner' })
+  async unsetPrimary(@Param('id') id: string, @Request() req) {
+    return this.cvService.unsetPrimaryCv(id, req.user.id);
+  }
+
+  @Get('user/primary-cv')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get current user primary CV' })
+  @ApiResponse({
+    status: 200,
+    description: 'Primary CV retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'No primary CV found' })
+  async getPrimaryCv(@Request() req) {
+    const cv = await this.cvService.getPrimaryCv(req.user.id);
+    if (!cv) {
+      return { message: 'No primary CV set' };
+    }
+    return cv;
+  }
+
+  @Get('user/primary-cv-or-first')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get primary CV or first published CV for applications',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'CV for applications retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'No suitable CV found' })
+  async getPrimaryCvOrFirst(@Request() req) {
+    const cv = await this.cvService.getPrimaryCvOrFirst(req.user.id);
+    if (!cv) {
+      return { message: 'No published CV available for applications' };
+    }
+    return cv;
+  }
 }

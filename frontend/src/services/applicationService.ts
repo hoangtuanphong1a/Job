@@ -30,7 +30,7 @@ export interface Application {
 
 export class ApplicationService {
   static async createApplication(data: CreateApplicationDto): Promise<Application> {
-    const response = await api.post('/job-applications', data);
+    const response = await api.post('/applications', data);
     return response.data;
   }
 
@@ -40,7 +40,7 @@ export class ApplicationService {
   }
 
   static async getApplicationStats(userId: string) {
-    const response = await api.get('/job-applications/user/my-stats');
+    const response = await api.get('/applications/user/my-stats');
     return response.data;
   }
 
@@ -49,7 +49,7 @@ export class ApplicationService {
   }
 
   static async getJobApplications(jobId: string): Promise<Application[]> {
-    const response = await api.get(`/job-applications/job/${jobId}`);
+    const response = await api.get(`/applications/job/${jobId}`);
     return response.data;
   }
 
@@ -58,7 +58,7 @@ export class ApplicationService {
     status: string,
     notes?: string
   ): Promise<Application> {
-    const response = await api.put(`/job-applications/${applicationId}`, {
+    const response = await api.put(`/applications/${applicationId}`, {
       status,
       notes,
     });
@@ -71,12 +71,12 @@ export class ApplicationService {
     status?: string;
     jobId?: string;
   }): Promise<{ data: Application[]; total: number; page: number; limit: number }> {
-    const response = await api.get('/job-applications', { params });
+    const response = await api.get('/applications', { params });
     return response.data;
   }
 
   static async getApplication(id: string): Promise<Application> {
-    const response = await api.get(`/job-applications/${id}`);
+    const response = await api.get(`/applications/${id}`);
     return response.data;
   }
 }

@@ -6,11 +6,10 @@ import { JobSeekerProfile } from './job-seeker-profile.entity';
 
 export enum ApplicationStatus {
   PENDING = 'pending',
-  REVIEWING = 'reviewing',
-  SHORTLISTED = 'shortlisted',
-  INTERVIEWED = 'interviewed',
-  ACCEPTED = 'accepted',
+  REVIEWED = 'reviewed',
+  INTERVIEW = 'interview',
   REJECTED = 'rejected',
+  HIRED = 'hired',
   WITHDRAWN = 'withdrawn',
 }
 

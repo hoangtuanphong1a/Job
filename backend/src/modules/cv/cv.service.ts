@@ -275,4 +275,107 @@ export class CvService {
       totalDownloads,
     };
   }
+
+  async setPrimaryCv(cvId: string, userId: string): Promise<CV> {
+    const cv = await this.findOne(cvId);
+
+    // Check if user owns this CV
+    if (cv.jobSeekerProfile.userId !== userId) {
+      throw new ForbiddenException('You can only modify your own CVs');
+    }
+
+    // Check if CV is published (only published CVs can be primary)
+    if (cv.status !== CVStatus.PUBLISHED) {
+      throw new ForbiddenException('Only published CVs can be set as primary');
+    }
+
+    // Unset all other primary CVs for this user
+    await this.cvRepository.update(
+      {
+        jobSeekerProfileId: cv.jobSeekerProfileId,
+        isPrimary: true,
+      },
+      { isPrimary: false },
+    );
+
+    // Set this CV as primary
+    await this.cvRepository.update(cvId, {
+      isPrimary: true,
+      lastModifiedAt: new Date(),
+    });
+
+    return this.findOne(cvId);
+  }
+
+  async unsetPrimaryCv(cvId: string, userId: string): Promise<CV> {
+    const cv = await this.findOne(cvId);
+
+    // Check if user owns this CV
+    if (cv.jobSeekerProfile.userId !== userId) {
+      throw new ForbiddenException('You can only modify your own CVs');
+    }
+
+    await this.cvRepository.update(cvId, {
+      isPrimary: false,
+      lastModifiedAt: new Date(),
+    });
+
+    return this.findOne(cvId);
+  }
+
+  async getPrimaryCv(userId: string): Promise<CV | null> {
+    // Find job seeker profile for the user
+    const jobSeekerProfile = await this.userRepository
+      .findOne({
+        where: { id: userId },
+        relations: ['jobSeekerProfiles'],
+      })
+      .then((user) => user?.jobSeekerProfiles?.[0]);
+
+    if (!jobSeekerProfile) {
+      return null;
+    }
+
+    const primaryCv = await this.cvRepository.findOne({
+      where: {
+        jobSeekerProfileId: jobSeekerProfile.id,
+        isPrimary: true,
+        status: CVStatus.PUBLISHED, // Only published CVs can be primary
+      },
+      relations: ['jobSeekerProfile'],
+    });
+
+    return primaryCv;
+  }
+
+  async getPrimaryCvOrFirst(userId: string): Promise<CV | null> {
+    // Try to get primary CV first
+    const primaryCv = await this.getPrimaryCv(userId);
+    if (primaryCv) {
+      return primaryCv;
+    }
+
+    // If no primary CV, get the first published CV
+    const jobSeekerProfile = await this.userRepository
+      .findOne({
+        where: { id: userId },
+        relations: ['jobSeekerProfiles'],
+      })
+      .then((user) => user?.jobSeekerProfiles?.[0]);
+
+    if (!jobSeekerProfile) {
+      return null;
+    }
+
+    const firstPublishedCv = await this.cvRepository.findOne({
+      where: {
+        jobSeekerProfileId: jobSeekerProfile.id,
+        status: CVStatus.PUBLISHED,
+      },
+      relations: ['jobSeekerProfile'],
+      order: { updatedAt: 'DESC' }, // Get most recently updated
+    });
+
+    return firstPublishedCv;
+  }
 }

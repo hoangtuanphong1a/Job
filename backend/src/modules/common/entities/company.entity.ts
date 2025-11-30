@@ -79,6 +79,16 @@ export class Company extends BaseEntity {
   })
   status: string;
 
+  // Verification fields for admin approval
+  @Column({ type: 'boolean', default: false })
+  isVerified: boolean;
+
+  @Column({ type: 'datetime', nullable: true })
+  verifiedAt?: Date;
+
+  @Column({ type: 'text', nullable: true })
+  adminNotes?: string;
+
   // Foreign key to the user who created/owns the company
   @Column({ name: 'owner_id' })
   ownerId: string;

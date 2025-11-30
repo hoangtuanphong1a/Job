@@ -42,6 +42,9 @@ export class CV extends BaseEntity {
   })
   visibility: CVVisibility;
 
+  @Column({ type: 'boolean', default: false })
+  isPrimary: boolean; // CV chính được sử dụng mặc định khi apply
+
   @Column({ nullable: true })
   publicUrl?: string; // URL công khai để chia sẻ CV
 

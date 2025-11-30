@@ -135,7 +135,8 @@ export class AdminController {
   })
   @ApiResponse({ status: 409, description: 'User already exists' })
   async createUser(
-    @Body() userData: {
+    @Body()
+    userData: {
       email: string;
       password: string;
       firstName?: string;
@@ -312,6 +313,44 @@ export class AdminController {
     return this.adminService.updateCompanyStatus(id, body.status, body.reason);
   }
 
+  @Put('companies/:id/verify')
+  @ApiParam({ name: 'id', description: 'Company ID' })
+  @ApiOperation({ summary: 'Verify or unverify a company' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        isVerified: { type: 'boolean' },
+        adminNotes: { type: 'string' },
+      },
+      required: ['isVerified'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Company verification status updated successfully',
+  })
+  async verifyCompany(
+    @Param('id') id: string,
+    @Body() body: { isVerified: boolean; adminNotes?: string },
+  ) {
+    return this.adminService.verifyCompany(
+      id,
+      body.isVerified,
+      body.adminNotes,
+    );
+  }
+
+  @Get('companies/pending-verifications')
+  @ApiOperation({ summary: 'Get companies pending verification' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of companies awaiting verification',
+  })
+  async getPendingCompanyVerifications() {
+    return this.adminService.getPendingCompanyVerifications();
+  }
+
   @Delete('companies/:id')
   @ApiParam({ name: 'id', description: 'Company ID' })
   @ApiOperation({ summary: 'Delete company (admin only)' })
@@ -386,8 +425,6 @@ export class AdminController {
       body.notes,
     );
   }
-
-
 
   @Get('system/logs')
   @ApiOperation({ summary: 'Get system logs' })
@@ -550,7 +587,10 @@ export class AdminController {
       },
     },
   })
-  @ApiResponse({ status: 201, description: 'Job category created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Job category created successfully',
+  })
   async createJobCategory(
     @Body() body: { name: string; description?: string },
   ) {
@@ -569,7 +609,10 @@ export class AdminController {
       },
     },
   })
-  @ApiResponse({ status: 200, description: 'Job category updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Job category updated successfully',
+  })
   async updateJobCategory(
     @Param('id') id: string,
     @Body() body: { name?: string; description?: string },
@@ -581,8 +624,102 @@ export class AdminController {
   @ApiParam({ name: 'id', description: 'Job category ID' })
   @ApiOperation({ summary: 'Delete job category' })
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiResponse({ status: 204, description: 'Job category deleted successfully' })
+  @ApiResponse({
+    status: 204,
+    description: 'Job category deleted successfully',
+  })
   async deleteJobCategory(@Param('id') id: string) {
     await this.adminService.deleteJobCategory(id);
+  }
+
+  // ===== BLOG COMMENT MODERATION =====
+  @Get('blog/comments/pending')
+  @ApiOperation({ summary: 'Get pending blog comments for moderation' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of pending comments requiring approval',
+  })
+  async getPendingBlogComments() {
+    return this.adminService.getPendingBlogComments();
+  }
+
+  @Put('blog/comments/:id/approve')
+  @ApiParam({ name: 'id', description: 'Comment ID' })
+  @ApiOperation({ summary: 'Approve a blog comment' })
+  @ApiResponse({
+    status: 200,
+    description: 'Comment approved successfully',
+  })
+  async approveBlogComment(@Param('id') id: string) {
+    return this.adminService.approveBlogComment(id);
+  }
+
+  @Delete('blog/comments/:id/reject')
+  @ApiParam({ name: 'id', description: 'Comment ID' })
+  @ApiOperation({ summary: 'Reject a blog comment' })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({
+    status: 204,
+    description: 'Comment rejected successfully',
+  })
+  async rejectBlogComment(@Param('id') id: string) {
+    await this.adminService.rejectBlogComment(id);
+  }
+
+  @Post('blog/comments/bulk-approve')
+  @ApiOperation({ summary: 'Bulk approve multiple blog comments' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        commentIds: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      required: ['commentIds'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bulk approval results',
+  })
+  async bulkApproveBlogComments(@Body() body: { commentIds: string[] }) {
+    return this.adminService.bulkApproveBlogComments(body.commentIds);
+  }
+
+  @Post('blog/comments/bulk-reject')
+  @ApiOperation({ summary: 'Bulk reject multiple blog comments' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        commentIds: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      required: ['commentIds'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bulk rejection results',
+  })
+  async bulkRejectBlogComments(@Body() body: { commentIds: string[] }) {
+    return this.adminService.bulkRejectBlogComments(body.commentIds);
+  }
+
+  @Get('blog/comments/approved')
+  @ApiOperation({ summary: 'Get approved blog comments' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'blogId', required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'List of approved comments',
+  })
+  async getApprovedBlogComments(@Query() query: any) {
+    return this.adminService.getApprovedBlogComments(query);
   }
 }

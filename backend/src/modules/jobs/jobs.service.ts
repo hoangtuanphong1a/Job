@@ -16,6 +16,9 @@ import { Skill } from '../common/entities/skill.entity';
 import { JobTag } from '../common/entities/job-tag.entity';
 import { JobCategory } from '../common/entities/job-category.entity';
 import { HRService } from '../hr/hr.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { JobView } from '../common/entities/job-view.entity';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class JobsService {
@@ -32,7 +35,10 @@ export class JobsService {
     private jobTagRepository: Repository<JobTag>,
     @InjectRepository(JobCategory)
     private jobCategoryRepository: Repository<JobCategory>,
+    @InjectRepository(JobView)
+    private jobViewRepository: Repository<JobView>,
     private hrService: HRService,
+    private subscriptionsService: SubscriptionsService,
   ) {}
 
   async create(createJobDto: CreateJobDto, userId: string): Promise<Job> {
@@ -91,21 +97,32 @@ export class JobsService {
 
     const job = this.jobRepository.create({
       ...jobData,
-      companyId,
       company,
-      postedById: userId,
       postedBy: user,
-      categoryId,
       category,
-      status: JobStatus.PUBLISHED, // Set status to PUBLISHED by default
-      publishedAt: new Date(), // Set published date
+      status: JobStatus.PUBLISHED, // Auto-publish for immediate visibility
+      publishedAt: new Date(),
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
     });
+
+    // Check subscription limits before creating job
+    const subscriptionCheck = await this.subscriptionsService.canPostJob(companyId);
+
+    if (!subscriptionCheck.canPost) {
+      console.error('❌ Subscription limit reached:', subscriptionCheck.reason);
+      throw new BadRequestException(
+        subscriptionCheck.reason || 'Subscription limit reached. Cannot create job.',
+      );
+    }
 
     // Save job first to get the ID
     console.log('💾 Saving job to database...');
     const savedJob = await this.jobRepository.save(job);
     console.log('✅ Job saved with ID:', savedJob.id);
+
+    // Increment jobs posted count in subscription
+    await this.subscriptionsService.incrementJobsPosted(companyId);
+    console.log('✅ Subscription job count incremented');
 
     // Handle skills relationships
     if (skillIds && skillIds.length > 0) {
@@ -316,7 +333,7 @@ export class JobsService {
 
     // Only increment view count for anonymous users or when not viewing own job
     if (!userId || job.company.ownerId !== userId) {
-      await this.incrementViewCount(id);
+      await this.incrementViewCount(id, userId);
     }
 
     return job;
@@ -373,10 +390,23 @@ export class JobsService {
       throw new BadRequestException('Only draft jobs can be published');
     }
 
+    // Check subscription limits before publishing
+    const subscriptionCheck = await this.subscriptionsService.canPostJob(job.companyId);
+
+    if (!subscriptionCheck.canPost) {
+      throw new BadRequestException(
+        subscriptionCheck.reason || 'Subscription limit reached. Cannot publish job.',
+      );
+    }
+
+    // Publish the job
     await this.jobRepository.update(id, {
       status: JobStatus.PUBLISHED,
       publishedAt: new Date(),
     });
+
+    // Increment jobs posted count in subscription (only for manual publishing)
+    await this.subscriptionsService.incrementJobsPosted(job.companyId);
 
     return this.findOne(id);
   }
@@ -405,8 +435,17 @@ export class JobsService {
     });
   }
 
-  async incrementViewCount(id: string): Promise<void> {
+  async incrementViewCount(id: string, userId?: string): Promise<void> {
+    // Increment view count in job table
     await this.jobRepository.increment({ id }, 'viewCount', 1);
+
+    // Log the view in job_views table
+    const jobView = this.jobViewRepository.create({
+      jobId: id,
+      userId: userId || undefined,
+      viewedAt: new Date(),
+    });
+    await this.jobViewRepository.save(jobView);
   }
 
   async getJobStats(userId: string): Promise<{
@@ -456,5 +495,25 @@ export class JobsService {
       totalViews,
       totalApplications,
     };
+  }
+
+  // Cron job to automatically expire jobs
+  @Cron(CronExpression.EVERY_HOUR)
+  async expireJobs(): Promise<void> {
+    const expiredJobs = await this.jobRepository
+      .createQueryBuilder('job')
+      .where('job.status = :status', { status: JobStatus.PUBLISHED })
+      .andWhere('job.expiresAt IS NOT NULL')
+      .andWhere('job.expiresAt < :now', { now: new Date() })
+      .getMany();
+
+    if (expiredJobs.length > 0) {
+      await this.jobRepository.update(
+        { id: In(expiredJobs.map((job) => job.id)) },
+        { status: JobStatus.EXPIRED },
+      );
+
+      console.log(`✅ Expired ${expiredJobs.length} jobs`);
+    }
   }
 }

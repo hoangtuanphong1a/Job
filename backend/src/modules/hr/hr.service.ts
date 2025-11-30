@@ -95,7 +95,7 @@ export class HRService {
         job: {
           companyId: In(companyIds),
         },
-        status: ApplicationStatus.ACCEPTED,
+        status: ApplicationStatus.HIRED,
       },
     });
 
@@ -109,7 +109,7 @@ export class HRService {
         job: {
           companyId: In(companyIds),
         },
-        status: ApplicationStatus.ACCEPTED,
+        status: ApplicationStatus.HIRED,
         updatedAt: Between(startOfMonth, new Date()),
       },
     });
@@ -286,8 +286,8 @@ export class HRService {
 
     // Validate status transitions
     if (
-      updateDto.status === ApplicationStatus.ACCEPTED &&
-      application.status !== ApplicationStatus.SHORTLISTED
+      updateDto.status === ApplicationStatus.HIRED &&
+      application.status !== ApplicationStatus.REVIEWED
     ) {
       throw new ForbiddenException('Can only accept shortlisted applications');
     }
@@ -308,16 +308,13 @@ export class HRService {
     try {
       let notificationMessage = '';
       switch (updateDto.status) {
-        case ApplicationStatus.REVIEWING:
+        case ApplicationStatus.REVIEWED:
           notificationMessage = `Đơn ứng tuyển của bạn cho vị trí ${application.job.title} đang được xem xét.`;
           break;
-        case ApplicationStatus.SHORTLISTED:
-          notificationMessage = `Chúc mừng! Bạn đã được chọn vào danh sách ứng viên tiềm năng cho vị trí ${application.job.title}.`;
-          break;
-        case ApplicationStatus.INTERVIEWED:
+        case ApplicationStatus.INTERVIEW:
           notificationMessage = `Bạn đã được mời phỏng vấn cho vị trí ${application.job.title}.`;
           break;
-        case ApplicationStatus.ACCEPTED:
+        case ApplicationStatus.HIRED:
           notificationMessage = `Chúc mừng! Bạn đã được chấp nhận cho vị trí ${application.job.title}.`;
           break;
         case ApplicationStatus.REJECTED:
@@ -353,14 +350,14 @@ export class HRService {
     const application = await this.getApplication(id, userId);
 
     // Check if application is in appropriate status
-    if (application.status !== ApplicationStatus.SHORTLISTED) {
+    if (application.status !== ApplicationStatus.REVIEWED) {
       throw new ForbiddenException(
-        'Can only schedule interviews for shortlisted applications',
+        'Can only schedule interviews for reviewed applications',
       );
     }
 
     await this.applicationRepository.update(id, {
-      status: ApplicationStatus.INTERVIEWED,
+      status: ApplicationStatus.INTERVIEW,
       interviewScheduledAt: new Date(scheduleDto.interviewDate),
       interviewNotes: scheduleDto.notes,
       reviewedAt: new Date(),
@@ -502,16 +499,15 @@ export class HRService {
     // Calculate metrics
     const totalApplications = applicationsInPeriod.length;
     const hired = applicationsInPeriod.filter(
-      (app) => app.status === ApplicationStatus.ACCEPTED,
+      (app) => app.status === ApplicationStatus.HIRED,
     ).length;
     const rejected = applicationsInPeriod.filter(
       (app) => app.status === ApplicationStatus.REJECTED,
     ).length;
     const inProgress = applicationsInPeriod.filter((app) =>
       [
-        ApplicationStatus.REVIEWING,
-        ApplicationStatus.SHORTLISTED,
-        ApplicationStatus.INTERVIEWED,
+        ApplicationStatus.REVIEWED,
+        ApplicationStatus.INTERVIEW,
       ].includes(app.status),
     ).length;
 
@@ -548,7 +544,7 @@ export class HRService {
         });
 
         const hired = applications.filter(
-          (app) => app.status === ApplicationStatus.ACCEPTED,
+          (app) => app.status === ApplicationStatus.HIRED,
         ).length;
 
         const conversionRate =
@@ -586,19 +582,19 @@ export class HRService {
     const funnel = {
       applied: applications.length,
       reviewing: applications.filter(
-        (app) => app.status === ApplicationStatus.REVIEWING,
+        (app) => app.status === ApplicationStatus.REVIEWED,
       ).length,
       shortlisted: applications.filter(
-        (app) => app.status === ApplicationStatus.SHORTLISTED,
+        (app) => app.status === ApplicationStatus.INTERVIEW,
       ).length,
       interviewed: applications.filter(
-        (app) => app.status === ApplicationStatus.INTERVIEWED,
+        (app) => app.status === ApplicationStatus.INTERVIEW,
       ).length,
       offered: applications.filter(
-        (app) => app.status === ApplicationStatus.ACCEPTED,
+        (app) => app.status === ApplicationStatus.HIRED,
       ).length,
       hired: applications.filter(
-        (app) => app.status === ApplicationStatus.ACCEPTED,
+        (app) => app.status === ApplicationStatus.HIRED,
       ).length, // Same as offered for now
     };
 

@@ -19,12 +19,19 @@ import { UpdateApplicationDto } from './dto/update-application.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../common/entities/notification.entity';
 import { HRCompanyRelationshipService } from '../hr-company-relationship/hr-company-relationship.service';
+import {
+  ApplicationEvent,
+  ApplicationEventType,
+} from '../common/entities/application-event.entity';
+import { CvService } from '../cv/cv.service';
 
 @Injectable()
 export class ApplicationsService {
   constructor(
     @InjectRepository(Application)
     private applicationRepository: Repository<Application>,
+    @InjectRepository(ApplicationEvent)
+    private applicationEventRepository: Repository<ApplicationEvent>,
     @InjectRepository(Job)
     private jobRepository: Repository<Job>,
     @InjectRepository(User)
@@ -33,6 +40,7 @@ export class ApplicationsService {
     private jobSeekerProfileRepository: Repository<JobSeekerProfile>,
     private notificationsService: NotificationsService,
     private hrCompanyRelationshipService: HRCompanyRelationshipService,
+    private cvService: CvService,
   ) {}
 
   async create(
@@ -102,6 +110,17 @@ export class ApplicationsService {
       throw new ConflictException('You have already applied for this job');
     }
 
+    // Get primary CV or first published CV for the application
+    const primaryCv = await this.cvService.getPrimaryCvOrFirst(userId);
+    let cvUrl: string | undefined;
+
+    if (primaryCv) {
+      cvUrl = primaryCv.pdfUrl || primaryCv.publicUrl;
+      console.log('Using CV for application:', primaryCv.title, cvUrl);
+    } else {
+      console.log('No CV available for application - proceeding without CV');
+    }
+
     // Create application
     const application = this.applicationRepository.create({
       ...applicationData,
@@ -109,9 +128,21 @@ export class ApplicationsService {
       job,
       jobSeekerProfileId: jobSeekerProfile.id,
       jobSeekerProfile,
+      resumeUrl: cvUrl, // Use primary CV URL
     });
 
     const savedApplication = await this.applicationRepository.save(application);
+
+    // Create ApplicationEvent for new application
+    const applicationEvent = this.applicationEventRepository.create({
+      applicationId: savedApplication.id,
+      application: savedApplication,
+      eventType: ApplicationEventType.APPLIED,
+      description: `Application submitted for ${job.title}`,
+      isVisibleToJobSeeker: true,
+      triggeredById: userId,
+    });
+    await this.applicationEventRepository.save(applicationEvent);
 
     // Increment application count for the job
     await this.jobRepository.increment({ id: jobId }, 'applicationCount', 1);
@@ -132,16 +163,11 @@ export class ApplicationsService {
 
       // Send notification to all HR users and company owner
       const notificationPromises = hrUserIds.map((hrUserId) =>
-        this.notificationsService.create(
+        this.notificationsService.createApplicationReceivedNotification(
           hrUserId,
-          NotificationType.APPLICATION_RECEIVED,
-          'Đơn ứng tuyển mới',
-          `${jobSeekerProfile.fullName || 'Ứng viên'} đã ứng tuyển vị trí ${job.title} tại công ty ${job.company.name}`,
-          {
-            relatedEntityId: savedApplication.id,
-            relatedEntityType: 'application',
-            priority: 3,
-          },
+          job.title,
+          jobSeekerProfile.fullName || 'Ứng viên',
+          savedApplication.id,
         ),
       );
 
@@ -238,13 +264,13 @@ export class ApplicationsService {
       throw new ForbiddenException('You can only delete your own applications');
     }
 
-    // Check if application can be withdrawn (not accepted/rejected)
+    // Check if application can be withdrawn (not hired/rejected)
     if (
-      application.status === ApplicationStatus.ACCEPTED ||
+      application.status === ApplicationStatus.HIRED ||
       application.status === ApplicationStatus.REJECTED
     ) {
       throw new BadRequestException(
-        'Cannot withdraw accepted or rejected applications',
+        'Cannot withdraw hired or rejected applications',
       );
     }
 
@@ -275,10 +301,12 @@ export class ApplicationsService {
 
     // Validate status transitions
     if (
-      status === ApplicationStatus.ACCEPTED &&
-      application.status !== ApplicationStatus.SHORTLISTED
+      status === ApplicationStatus.HIRED &&
+      application.status !== ApplicationStatus.INTERVIEW
     ) {
-      throw new BadRequestException('Can only accept shortlisted applications');
+      throw new BadRequestException(
+        'Can only hire applications that have been interviewed',
+      );
     }
 
     const updateData: any = {
@@ -291,8 +319,55 @@ export class ApplicationsService {
       updateData.notes = notes;
     }
 
+    // Store old status for event logging
+    const oldStatus = application.status;
+
     await this.applicationRepository.update(id, updateData);
-    return this.findOne(id);
+    const updatedApplication = await this.findOne(id);
+
+    // Create ApplicationEvent for status change
+    const statusChangeEvent = this.applicationEventRepository.create({
+      applicationId: application.id,
+      application: application,
+      eventType: ApplicationEventType.STATUS_CHANGED,
+      oldStatus: oldStatus,
+      newStatus: status,
+      description: `Application status changed from ${oldStatus} to ${status}`,
+      isVisibleToJobSeeker: true,
+      triggeredById: userId,
+    });
+    await this.applicationEventRepository.save(statusChangeEvent);
+
+    // Send appropriate notification based on status change
+    try {
+      if (status === ApplicationStatus.REVIEWED) {
+        await this.notificationsService.createApplicationStatusChangedNotification(
+          application.jobSeekerProfile.userId,
+          application.job.title,
+          'reviewed',
+          application.id,
+        );
+      } else if (status === ApplicationStatus.REJECTED) {
+        await this.notificationsService.createApplicationRejectedNotification(
+          application.jobSeekerProfile.userId,
+          application.job.title,
+          application.job.company.name,
+          application.id,
+        );
+      } else if (status === ApplicationStatus.HIRED) {
+        await this.notificationsService.createApplicationApprovedNotification(
+          application.jobSeekerProfile.userId,
+          application.job.title,
+          application.job.company.name,
+          application.id,
+        );
+      }
+    } catch (error) {
+      console.error('Failed to send status change notification:', error);
+      // Don't fail the status update if notification fails
+    }
+
+    return updatedApplication;
   }
 
   async scheduleInterview(
@@ -311,21 +386,49 @@ export class ApplicationsService {
     }
 
     // Check if application is in appropriate status
-    if (application.status !== ApplicationStatus.SHORTLISTED) {
+    if (application.status !== ApplicationStatus.REVIEWED) {
       throw new BadRequestException(
-        'Can only schedule interviews for shortlisted applications',
+        'Can only schedule interviews for reviewed applications',
       );
     }
 
     await this.applicationRepository.update(id, {
-      status: ApplicationStatus.INTERVIEWED,
+      status: ApplicationStatus.INTERVIEW,
       interviewScheduledAt: interviewDate,
       interviewNotes: notes,
       reviewedAt: new Date(),
       reviewedById: userId,
     });
 
-    return this.findOne(id);
+    const updatedApplication = await this.findOne(id);
+
+    // Create ApplicationEvent for interview scheduling
+    const interviewEvent = this.applicationEventRepository.create({
+      applicationId: application.id,
+      application: application,
+      eventType: ApplicationEventType.INTERVIEW_SCHEDULED,
+      description: `Interview scheduled for ${interviewDate.toLocaleDateString()}`,
+      isVisibleToJobSeeker: true,
+      triggeredById: userId,
+    });
+    interviewEvent.setEventData({ interviewDate: interviewDate.toISOString() });
+    await this.applicationEventRepository.save(interviewEvent);
+
+    // Send interview scheduled notification
+    try {
+      await this.notificationsService.createApplicationInterviewScheduledNotification(
+        application.jobSeekerProfile.userId,
+        application.job.title,
+        application.job.company.name,
+        interviewDate,
+        application.id,
+      );
+    } catch (error) {
+      console.error('Failed to send interview scheduled notification:', error);
+      // Don't fail the interview scheduling if notification fails
+    }
+
+    return updatedApplication;
   }
 
   async findByJob(jobId: string, userId?: string): Promise<Application[]> {
@@ -413,14 +516,12 @@ export class ApplicationsService {
         (app) => app.status === ApplicationStatus.PENDING,
       ).length,
       reviewedApplications: applications.filter((app) =>
-        [
-          ApplicationStatus.REVIEWING,
-          ApplicationStatus.SHORTLISTED,
-          ApplicationStatus.INTERVIEWED,
-        ].includes(app.status),
+        [ApplicationStatus.REVIEWED, ApplicationStatus.INTERVIEW].includes(
+          app.status,
+        ),
       ).length,
       acceptedApplications: applications.filter(
-        (app) => app.status === ApplicationStatus.ACCEPTED,
+        (app) => app.status === ApplicationStatus.HIRED,
       ).length,
       rejectedApplications: applications.filter(
         (app) => app.status === ApplicationStatus.REJECTED,
@@ -437,5 +538,16 @@ export class ApplicationsService {
     }
 
     await this.applicationRepository.increment({ id }, 'viewCount', 1);
+
+    // Create ApplicationEvent for CV view
+    const viewEvent = this.applicationEventRepository.create({
+      applicationId: application.id,
+      application: application,
+      eventType: ApplicationEventType.CV_DOWNLOADED,
+      description: 'CV was viewed by employer',
+      isVisibleToJobSeeker: true,
+      triggeredById: userId,
+    });
+    await this.applicationEventRepository.save(viewEvent);
   }
 }

@@ -20,6 +20,7 @@ import { Skill } from '../common/entities/skill.entity';
 import { JobCategory } from '../common/entities/job-category.entity';
 import { Payment } from '../common/entities/payment.entity';
 import { Notification } from '../common/entities/notification.entity';
+import { BlogComment } from '../common/entities/blog-comment.entity';
 
 // Interfaces for query parameters
 interface PaginationQuery {
@@ -99,10 +100,12 @@ export class AdminService {
     private readonly skillRepository: Repository<Skill>,
     @InjectRepository(JobCategory)
     private readonly jobCategoryRepository: Repository<JobCategory>,
-    @InjectRepository(Payment)
-    private readonly paymentRepository: Repository<Payment>,
-    @InjectRepository(Notification)
-    private readonly notificationRepository: Repository<Notification>,
+  @InjectRepository(Payment)
+  private readonly paymentRepository: Repository<Payment>,
+  @InjectRepository(Notification)
+  private readonly notificationRepository: Repository<Notification>,
+  @InjectRepository(BlogComment)
+  private readonly blogCommentRepository: Repository<BlogComment>,
   ) {}
 
   // ===== DASHBOARD OVERVIEW =====
@@ -334,10 +337,11 @@ export class AdminService {
             'Future Tech Solutions',
             'Smart Systems Co.',
             'NextGen Technologies',
-            'Modern Software House'
+            'Modern Software House',
           ];
 
-          const randomCompanyName = companyNames[Math.floor(Math.random() * companyNames.length)];
+          const randomCompanyName =
+            companyNames[Math.floor(Math.random() * companyNames.length)];
 
           const company = this.companyRepository.create({
             name: randomCompanyName,
@@ -406,7 +410,8 @@ export class AdminService {
         });
       } else {
         // Simplified query with basic filters and userRoles relation
-        let qb = this.userRepository.createQueryBuilder('user')
+        let qb = this.userRepository
+          .createQueryBuilder('user')
           .leftJoinAndSelect('user.userRoles', 'userRole')
           .leftJoinAndSelect('userRole.role', 'roleEntity');
 
@@ -691,6 +696,78 @@ export class AdminService {
     }
   }
 
+  async verifyCompany(id: string, isVerified: boolean, adminNotes?: string) {
+    try {
+      const company = await this.companyRepository.findOne({
+        where: { id },
+        relations: ['owner'],
+      });
+      if (!company) {
+        throw new NotFoundException('Company not found');
+      }
+
+      company.isVerified = isVerified;
+      company.verifiedAt = isVerified ? new Date() : undefined;
+      company.adminNotes = adminNotes || undefined;
+
+      await this.companyRepository.save(company);
+
+      this.logger.log(
+        `Company ${id} verification status updated to ${isVerified}`,
+      );
+
+      // Send notification to company owner
+      try {
+        const notificationMessage = isVerified
+          ? `Công ty ${company.name} của bạn đã được xác minh thành công. Giờ bạn có thể đăng tin tuyển dụng với mức độ hiển thị cao hơn.`
+          : `Công ty ${company.name} của bạn chưa được xác minh. Vui lòng cập nhật thông tin công ty để được xác minh.`;
+
+        // Import NotificationsService to send notification
+        // Note: This would need to be injected into the constructor
+        // For now, we'll just log the notification
+        this.logger.log(
+          `Notification to ${company.owner.email}: ${notificationMessage}`,
+        );
+      } catch (notificationError) {
+        this.logger.error(
+          'Failed to send verification notification',
+          notificationError,
+        );
+      }
+
+      return {
+        message: `Company ${isVerified ? 'verified' : 'unverified'} successfully`,
+        company: {
+          id: company.id,
+          name: company.name,
+          isVerified: company.isVerified,
+          verifiedAt: company.verifiedAt,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Error verifying company ${id}`, error);
+      throw error;
+    }
+  }
+
+  async getPendingCompanyVerifications() {
+    try {
+      const pendingCompanies = await this.companyRepository.find({
+        where: { isVerified: false },
+        relations: ['owner'],
+        order: { createdAt: 'ASC' },
+      });
+
+      return {
+        data: pendingCompanies,
+        total: pendingCompanies.length,
+      };
+    } catch (error) {
+      this.logger.error('Error getting pending company verifications', error);
+      throw error;
+    }
+  }
+
   async deleteCompany(id: string) {
     try {
       const result = await this.companyRepository.delete(id);
@@ -832,7 +909,10 @@ export class AdminService {
             };
           } catch (error) {
             // If relationship query fails, return skill with usageCount 0
-            console.warn(`Failed to get usage count for skill ${skill.id}:`, error.message);
+            console.warn(
+              `Failed to get usage count for skill ${skill.id}:`,
+              error.message,
+            );
             return {
               ...skill,
               usageCount: 0,
@@ -952,10 +1032,7 @@ export class AdminService {
     }
   }
 
-  async createJobCategory(data: {
-    name: string;
-    description?: string;
-  }) {
+  async createJobCategory(data: { name: string; description?: string }) {
     try {
       const category = this.jobCategoryRepository.create(data);
       const savedCategory = await this.jobCategoryRepository.save(category);
@@ -1020,10 +1097,13 @@ export class AdminService {
       const totalCategories = await this.jobCategoryRepository.count();
       const categoriesThisMonth = await this.jobCategoryRepository
         .createQueryBuilder('category')
-        .where('category.createdAt >= :thisMonth AND category.createdAt <= :today', {
-          thisMonth,
-          today,
-        })
+        .where(
+          'category.createdAt >= :thisMonth AND category.createdAt <= :today',
+          {
+            thisMonth,
+            today,
+          },
+        )
         .getCount();
 
       return {
@@ -1273,6 +1353,140 @@ export class AdminService {
       this.logger.error('Error getting revenue report', error);
       throw error;
     }
+  }
+
+  // ===== BLOG COMMENT MODERATION =====
+
+  async getPendingBlogComments(): Promise<{
+    data: BlogComment[];
+    total: number;
+  }> {
+    const pendingComments = await this.blogCommentRepository.find({
+      where: { isApproved: false },
+      relations: ['blog', 'author', 'parent'],
+      order: { createdAt: 'ASC' },
+    });
+
+    return {
+      data: pendingComments,
+      total: pendingComments.length,
+    };
+  }
+
+  async approveBlogComment(commentId: string): Promise<BlogComment> {
+    const comment = await this.blogCommentRepository.findOne({
+      where: { id: commentId },
+      relations: ['blog', 'author', 'parent'],
+    });
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    if (comment.isApproved) {
+      throw new BadRequestException('Comment is already approved');
+    }
+
+    comment.approve();
+    const approvedComment = await this.blogCommentRepository.save(comment);
+
+    this.logger.log(`Blog comment ${commentId} approved by admin`);
+    return approvedComment;
+  }
+
+  async rejectBlogComment(commentId: string): Promise<void> {
+    const comment = await this.blogCommentRepository.findOne({
+      where: { id: commentId },
+    });
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    if (comment.isApproved) {
+      throw new BadRequestException('Cannot reject approved comments');
+    }
+
+    await this.blogCommentRepository.remove(comment);
+    this.logger.log(`Blog comment ${commentId} rejected by admin`);
+  }
+
+  async bulkApproveBlogComments(commentIds: string[]): Promise<{
+    approved: number;
+    failed: number;
+  }> {
+    let approved = 0;
+    let failed = 0;
+
+    for (const commentId of commentIds) {
+      try {
+        await this.approveBlogComment(commentId);
+        approved++;
+      } catch (error) {
+        this.logger.error(
+          `Failed to approve comment ${commentId}:`,
+          error.message,
+        );
+        failed++;
+      }
+    }
+
+    this.logger.log(`Bulk approved ${approved} comments, ${failed} failed`);
+    return { approved, failed };
+  }
+
+  async bulkRejectBlogComments(commentIds: string[]): Promise<{
+    rejected: number;
+    failed: number;
+  }> {
+    let rejected = 0;
+    let failed = 0;
+
+    for (const commentId of commentIds) {
+      try {
+        await this.rejectBlogComment(commentId);
+        rejected++;
+      } catch (error) {
+        this.logger.error(
+          `Failed to reject comment ${commentId}:`,
+          error.message,
+        );
+        failed++;
+      }
+    }
+
+    this.logger.log(`Bulk rejected ${rejected} comments, ${failed} failed`);
+    return { rejected, failed };
+  }
+
+  async getApprovedBlogComments(query: any = {}): Promise<{
+    data: BlogComment[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { page = 1, limit = 10, blogId } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = { isApproved: true };
+    if (blogId) {
+      where.blogId = blogId;
+    }
+
+    const [comments, total] = await this.blogCommentRepository.findAndCount({
+      where,
+      relations: ['blog', 'author', 'parent'],
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    return {
+      data: comments,
+      total,
+      page: +page,
+      limit: +limit,
+    };
   }
 
   // ===== HELPER METHODS =====

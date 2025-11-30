@@ -9,6 +9,7 @@ import { JobSeekerProfile } from '../common/entities/job-seeker-profile.entity';
 import { User } from '../common/entities/user.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { HRCompanyRelationshipModule } from '../hr-company-relationship/hr-company-relationship.module';
+import { CvModule } from '../cv/cv.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { HRCompanyRelationshipModule } from '../hr-company-relationship/hr-compa
     ]),
     NotificationsModule,
     HRCompanyRelationshipModule,
+    CvModule,
   ],
   controllers: [ApplicationsController],
   providers: [ApplicationsService],

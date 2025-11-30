@@ -263,6 +263,320 @@ export class NotificationsService {
     return this.notificationRepository.save(notifications);
   }
 
+  // ===== EXPANDED NOTIFICATION TYPES =====
+
+  async createApplicationApprovedNotification(
+    applicantId: string,
+    jobTitle: string,
+    companyName: string,
+    applicationId: string,
+  ): Promise<Notification> {
+    return this.create(
+      applicantId,
+      NotificationType.APPLICATION_APPROVED,
+      'Application Approved',
+      `Congratulations! Your application for "${jobTitle}" at ${companyName} has been approved.`,
+      {
+        relatedEntityId: applicationId,
+        relatedEntityType: 'application',
+        priority: 3,
+      },
+    );
+  }
+
+  async createApplicationRejectedNotification(
+    applicantId: string,
+    jobTitle: string,
+    companyName: string,
+    applicationId: string,
+  ): Promise<Notification> {
+    return this.create(
+      applicantId,
+      NotificationType.APPLICATION_REJECTED,
+      'Application Status Update',
+      `Your application for "${jobTitle}" at ${companyName} has been reviewed but not selected at this time.`,
+      {
+        relatedEntityId: applicationId,
+        relatedEntityType: 'application',
+        priority: 2,
+      },
+    );
+  }
+
+  async createApplicationInterviewScheduledNotification(
+    applicantId: string,
+    jobTitle: string,
+    companyName: string,
+    interviewDate: Date,
+    applicationId: string,
+  ): Promise<Notification> {
+    return this.create(
+      applicantId,
+      NotificationType.APPLICATION_INTERVIEW_SCHEDULED,
+      'Interview Scheduled',
+      `Great news! ${companyName} has scheduled an interview for "${jobTitle}" on ${interviewDate.toLocaleString()}.`,
+      {
+        relatedEntityId: applicationId,
+        relatedEntityType: 'application',
+        priority: 4,
+      },
+    );
+  }
+
+  async createJobApprovedNotification(
+    employerId: string,
+    jobTitle: string,
+    jobId: string,
+  ): Promise<Notification> {
+    return this.create(
+      employerId,
+      NotificationType.JOB_APPROVED,
+      'Job Approved',
+      `Your job "${jobTitle}" has been approved and is now live.`,
+      {
+        relatedEntityId: jobId,
+        relatedEntityType: 'job',
+        priority: 3,
+      },
+    );
+  }
+
+  async createJobClosedNotification(
+    employerId: string,
+    jobTitle: string,
+    jobId: string,
+  ): Promise<Notification> {
+    return this.create(
+      employerId,
+      NotificationType.JOB_CLOSED,
+      'Job Closed',
+      `Your job "${jobTitle}" has been closed successfully.`,
+      {
+        relatedEntityId: jobId,
+        relatedEntityType: 'job',
+        priority: 2,
+      },
+    );
+  }
+
+  async createSubscriptionRenewedNotification(
+    userId: string,
+    planName: string,
+    expiryDate: Date,
+  ): Promise<Notification> {
+    return this.create(
+      userId,
+      NotificationType.SUBSCRIPTION_RENEWED,
+      'Subscription Renewed',
+      `Your ${planName} subscription has been successfully renewed. Valid until ${expiryDate.toDateString()}.`,
+      {
+        priority: 2,
+      },
+    );
+  }
+
+  async createCvDownloadedNotification(
+    jobSeekerId: string,
+    companyName: string,
+    cvId: string,
+  ): Promise<Notification> {
+    return this.create(
+      jobSeekerId,
+      NotificationType.CV_DOWNLOADED,
+      'CV Downloaded',
+      `${companyName} has downloaded your CV.`,
+      {
+        relatedEntityId: cvId,
+        relatedEntityType: 'cv',
+        priority: 1,
+      },
+    );
+  }
+
+  async createBlogCommentApprovedNotification(
+    authorId: string,
+    blogTitle: string,
+    commentId: string,
+  ): Promise<Notification> {
+    return this.create(
+      authorId,
+      NotificationType.BLOG_COMMENT_APPROVED,
+      'Comment Approved',
+      `Your comment on "${blogTitle}" has been approved and is now visible.`,
+      {
+        relatedEntityId: commentId,
+        relatedEntityType: 'blog_comment',
+        priority: 1,
+      },
+    );
+  }
+
+  async createBlogCommentRejectedNotification(
+    authorId: string,
+    blogTitle: string,
+    commentId: string,
+  ): Promise<Notification> {
+    return this.create(
+      authorId,
+      NotificationType.BLOG_COMMENT_REJECTED,
+      'Comment Not Approved',
+      `Your comment on "${blogTitle}" could not be approved at this time.`,
+      {
+        relatedEntityId: commentId,
+        relatedEntityType: 'blog_comment',
+        priority: 1,
+      },
+    );
+  }
+
+  async createBlogNewCommentNotification(
+    blogAuthorId: string,
+    commenterName: string,
+    blogTitle: string,
+    commentId: string,
+  ): Promise<Notification> {
+    return this.create(
+      blogAuthorId,
+      NotificationType.BLOG_NEW_COMMENT,
+      'New Comment on Your Blog',
+      `${commenterName} commented on your blog "${blogTitle}".`,
+      {
+        relatedEntityId: commentId,
+        relatedEntityType: 'blog_comment',
+        priority: 1,
+      },
+    );
+  }
+
+  async createMessageReceivedNotification(
+    recipientId: string,
+    senderName: string,
+    messagePreview: string,
+    threadId: string,
+  ): Promise<Notification> {
+    return this.create(
+      recipientId,
+      NotificationType.MESSAGE_RECEIVED,
+      'New Message',
+      `${senderName}: ${messagePreview.substring(0, 50)}${messagePreview.length > 50 ? '...' : ''}`,
+      {
+        relatedEntityId: threadId,
+        relatedEntityType: 'message_thread',
+        priority: 2,
+      },
+    );
+  }
+
+  async createCompanyVerifiedNotification(
+    ownerId: string,
+    companyName: string,
+  ): Promise<Notification> {
+    return this.create(
+      ownerId,
+      NotificationType.COMPANY_VERIFIED,
+      'Company Verified',
+      `Congratulations! Your company "${companyName}" has been verified. You now have access to enhanced features.`,
+      {
+        priority: 3,
+      },
+    );
+  }
+
+  async createCompanyUnverifiedNotification(
+    ownerId: string,
+    companyName: string,
+  ): Promise<Notification> {
+    return this.create(
+      ownerId,
+      NotificationType.COMPANY_UNVERIFIED,
+      'Company Verification Update',
+      `Your company "${companyName}" verification status has changed. Please update your company information.`,
+      {
+        priority: 2,
+      },
+    );
+  }
+
+  // ===== BULK NOTIFICATION METHODS =====
+
+  async notifyAllUsersAboutSystemUpdate(
+    title: string,
+    message: string,
+    userRole?: string,
+  ): Promise<number> {
+    let userIds: string[];
+
+    if (userRole) {
+      // Get users with specific role
+      const users = await this.userRepository.find({
+        relations: ['userRoles', 'userRoles.role'],
+      });
+
+      userIds = users
+        .filter((user) =>
+          user.userRoles?.some((ur) => ur.role.name === (userRole as any)),
+        )
+        .map((user) => user.id);
+    } else {
+      // Get all users
+      const users = await this.userRepository.find();
+      userIds = users.map((user) => user.id);
+    }
+
+    const notifications = await this.createSystemAnnouncement(
+      userIds,
+      title,
+      message,
+    );
+
+    return notifications.length;
+  }
+
+  async notifyEmployersAboutNewFeature(
+    title: string,
+    message: string,
+  ): Promise<number> {
+    const users = await this.userRepository.find({
+      relations: ['userRoles', 'userRoles.role'],
+    });
+
+    const employerIds = users
+      .filter((user) =>
+        user.userRoles?.some((userRole) => userRole.role.name === 'employer'),
+      )
+      .map((user) => user.id);
+
+    const notifications = await this.createSystemAnnouncement(
+      employerIds,
+      title,
+      message,
+    );
+
+    return notifications.length;
+  }
+
+  async notifyJobSeekersAboutNewJobs(
+    jobTitle: string,
+    companyName: string,
+    matchingUserIds: string[],
+  ): Promise<number> {
+    const notifications = await Promise.all(
+      matchingUserIds.map((userId) =>
+        this.create(
+          userId,
+          NotificationType.SYSTEM_ANNOUNCEMENT,
+          'New Job Match',
+          `A new job "${jobTitle}" at ${companyName} matches your profile.`,
+          {
+            priority: 2,
+          },
+        ),
+      ),
+    );
+
+    return notifications.length;
+  }
+
   async getNotificationStats(userId: string): Promise<{
     total: number;
     unread: number;

@@ -5,10 +5,22 @@ import { User } from './user.entity';
 export enum NotificationType {
   APPLICATION_RECEIVED = 'application_received',
   APPLICATION_STATUS_CHANGED = 'application_status_changed',
+  APPLICATION_APPROVED = 'application_approved',
+  APPLICATION_REJECTED = 'application_rejected',
+  APPLICATION_INTERVIEW_SCHEDULED = 'application_interview_scheduled',
+  JOB_APPROVED = 'job_approved',
+  JOB_CLOSED = 'job_closed',
   JOB_EXPIRED = 'job_expired',
   SUBSCRIPTION_EXPIRED = 'subscription_expired',
+  SUBSCRIPTION_RENEWED = 'subscription_renewed',
   CV_VIEWED = 'cv_viewed',
-  BLOG_COMMENT = 'blog_comment',
+  CV_DOWNLOADED = 'cv_downloaded',
+  BLOG_COMMENT_APPROVED = 'blog_comment_approved',
+  BLOG_COMMENT_REJECTED = 'blog_comment_rejected',
+  BLOG_NEW_COMMENT = 'blog_new_comment',
+  MESSAGE_RECEIVED = 'message_received',
+  COMPANY_VERIFIED = 'company_verified',
+  COMPANY_UNVERIFIED = 'company_unverified',
   SYSTEM_ANNOUNCEMENT = 'system_announcement',
 }
 

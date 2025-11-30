@@ -76,7 +76,7 @@ export class EmployerService {
         job: {
           companyId: In(companyIds),
         },
-        status: ApplicationStatus.ACCEPTED,
+        status: ApplicationStatus.HIRED,
       },
     });
 
