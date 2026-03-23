@@ -160,7 +160,7 @@ stage('Deploy Server') {
             docker image prune -f
 
             echo "✅ Deploy thành công!"
-REMOTE_EOF
+
             '''
             }
         }
