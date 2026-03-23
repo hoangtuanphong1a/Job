@@ -4,14 +4,14 @@ pipeline {
     environment {
         BACKEND_IMAGE_NAME = "cv-king-backend"
         FRONTEND_IMAGE_NAME = "cv-king-frontend"
-        SERVER_HOST = "206.189.88.56"
-        SERVER_USER = "root"
+        SERVER_HOST = "15.135.224.224"
+        SERVER_USER = "ubuntu"
 
         // MySQL Configuration
-        MYSQL_ROOT_PASSWORD = "123321"
-        MYSQL_DATABASE = "JOB"
-        MYSQL_USER = "TUANPHONG"
-        MYSQL_PASSWORD = "123321"
+        MYSQL_ROOT_PASSWORD = "TokExscZiEiqyXnCgCkFmxXGobgmQqTM"
+        MYSQL_DATABASE = "railway"
+        MYSQL_USER = "root"
+        MYSQL_PASSWORD = "TokExscZiEiqyXnCgCkFmxXGobgmQqTM"
 
         // JWT Configuration
         JWT_SECRET = "cv-king-super-secret-jwt-key-2024-secure"
