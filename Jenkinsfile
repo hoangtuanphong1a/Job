@@ -100,7 +100,7 @@ stage('Deploy Server') {
             ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST "mkdir -p ~/project && chmod 755 ~/project"
 
             echo "=== [2/6] Copy docker-compose.yml lên server ==="
-            scp -o StrictHostKeyChecking=no $DOCKER_COMPOSE_FILE $SERVER_USER@$SERVER_HOST:~/project/docker-compose.yml
+            scp $DOCKER_COMPOSE_FILE $SERVER_USER@$SERVER_HOST:/home/ubuntu/project/docker-compose.prod.yml
 
             echo "=== [3/6] Bắt đầu deploy trên server ==="
             ssh -T -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST <<REMOTE_EOF
@@ -156,10 +156,10 @@ stage('Deploy Server') {
             docker container prune -f || true
 
             echo "⬇️ Kéo image mới nhất"
-            docker compose --env-file .env pull
+            docker compose -f docker-compose.prod.yml --env-file .env pull
 
             echo "▶️ Khởi động lại toàn bộ services"
-            docker compose --env-file .env up -d
+            docker compose -f docker-compose.prod.yml --env-file .env up -d
 
             echo "⏳ Đợi health checks..."
             sleep 30
