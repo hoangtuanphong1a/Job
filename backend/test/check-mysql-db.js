@@ -3,14 +3,14 @@ const mysql = require('mysql2/promise');
 async function checkMySQLDatabase() {
   console.log('🔍 Checking CVKing MySQL Database...\n');
 
-  const config = {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306'),
-    user: process.env.DB_USER || 'TUANPHONG',
-    password: process.env.DB_PASSWORD || '123321',
-    database: process.env.DB_NAME || 'cvking_db',
-    connectTimeout: 5000,
-  };
+const config = {
+  host: process.env.DB_HOST || 'centerbeam.proxy.rlwy.net',
+  port: parseInt(process.env.DB_PORT || '13926'),
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'TokExscZiEiqyXnCgCkFmxXGobgmQqTM',
+  database: process.env.DB_NAME || 'railway',
+  connectTimeout: 5000,
+};
 
   console.log('📍 Connection Config:');
   console.log(`   Host: ${config.host}:${config.port}`);

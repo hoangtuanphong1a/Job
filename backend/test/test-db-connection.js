@@ -2,11 +2,11 @@ const mysql = require('mysql2/promise');
 
 async function testConnection() {
   const config = {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306'),
-    user: process.env.DB_USER || 'TUANPHONG',
-    password: process.env.DB_PASSWORD || '123321',
-    database: process.env.DB_NAME || 'cvking_db',
+    host: process.env.DB_HOST || 'centerbeam.proxy.rlwy.net',
+    port: parseInt(process.env.DB_PORT || '13926'),
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'TokExscZiEiqyXnCgCkFmxXGobgmQqTM',
+    database: process.env.DB_NAME || 'railway',
     connectTimeout: 5000,
   };
 
@@ -31,15 +31,16 @@ async function testConnection() {
 
     // Check if database exists
     const [databases] = await connection.execute('SHOW DATABASES');
-    const dbExists = databases.some(db => db.Database === config.database);
-    console.log(`📊 Database '${config.database}' ${dbExists ? 'EXISTS' : 'DOES NOT EXIST'}`);
+    const dbExists = databases.some((db) => db.Database === config.database);
+    console.log(
+      `📊 Database '${config.database}' ${dbExists ? 'EXISTS' : 'DOES NOT EXIST'}`,
+    );
 
     if (dbExists) {
       // Check tables
       const [tables] = await connection.execute('SHOW TABLES');
       console.log(`📋 Found ${tables.length} tables in database`);
     }
-
   } catch (error) {
     console.error('❌ Connection failed!');
     console.error('Error details:', {
@@ -68,7 +69,6 @@ async function testConnection() {
     } catch (noDbError) {
       console.log('❌ Cannot connect to MySQL server at all');
     }
-
   } finally {
     if (connection) {
       await connection.end();
