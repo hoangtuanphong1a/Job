@@ -133,8 +133,7 @@ stage('Deploy Server') {
 
             JWT_SECRET=$JWT_SECRET
             EOF
-            echo "📄 DEBUG ENV:"
-            cat .env
+            
             echo "🔑 Docker login"
             mkdir -p ~/.docker
             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin docker.io
