@@ -62,8 +62,7 @@ services:
       - "3001:3001"
     networks:
       - cv-king-network
-    env_file:
-      - .env
+# 
 
   frontend:
     image: hoangtuanphong/cv-king-frontend-new:latest
@@ -77,8 +76,7 @@ services:
       - backend
     networks:
       - cv-king-network
-    env_file:
-      - .env
+
 
 # volumes:
 # mysql_data:
