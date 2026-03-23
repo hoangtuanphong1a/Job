@@ -65,7 +65,6 @@ services:
         condition: service_healthy
     networks:
       - cv-king-network
-
     env_file:
       - .env
 
@@ -83,6 +82,7 @@ services:
       - cv-king-network
     env_file:
       - .env
+
 volumes:
   mysql_data:
 
