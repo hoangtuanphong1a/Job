@@ -100,7 +100,7 @@ stage('Deploy Server') {
             ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST "mkdir -p ~/project && chmod 755 ~/project"
 
             echo "=== [2/6] Copy docker-compose.yml lên server ==="
-            scp -o StrictHostKeyChecking=no $DOCKER_COMPOSE_FILE $SERVER_USER@$SERVER_HOST:~/project/docker-compose.prod.yml
+            scp -o StrictHostKeyChecking=no $DOCKER_COMPOSE_FILE $SERVER_USER@$SERVER_HOST:~/project/docker-compose.yml
 
             echo "=== [3/6] Bắt đầu deploy trên server ==="
             ssh -T -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST <<REMOTE_EOF
@@ -121,16 +121,16 @@ stage('Deploy Server') {
 
             echo "➡️ Tạo file .env"
             cat > .env <<EOF
-DB_CONNECTION_STRING=\$DB_CONN
-DOCKER_REGISTRY=docker.io/\$DOCKER_USER
-BACKEND_IMAGE_NAME=\$BACKEND_IMAGE_NAME
-FRONTEND_IMAGE_NAME=\$FRONTEND_IMAGE_NAME
-MYSQL_ROOT_PASSWORD=\$MYSQL_ROOT_PASSWORD
-MYSQL_DATABASE=\$MYSQL_DATABASE
-MYSQL_USER=\$MYSQL_USER
-MYSQL_PASSWORD=\$MYSQL_PASSWORD
-JWT_SECRET=\$JWT_SECRET
-EOF
+                DB_CONNECTION_STRING=\$DB_CONN
+                DOCKER_REGISTRY=docker.io/\$DOCKER_USER
+                BACKEND_IMAGE_NAME=\$BACKEND_IMAGE_NAME
+                FRONTEND_IMAGE_NAME=\$FRONTEND_IMAGE_NAME
+                MYSQL_ROOT_PASSWORD=\$MYSQL_ROOT_PASSWORD
+                MYSQL_DATABASE=\$MYSQL_DATABASE
+                MYSQL_USER=\$MYSQL_USER
+                MYSQL_PASSWORD=\$MYSQL_PASSWORD
+                JWT_SECRET=\$JWT_SECRET
+                EOF
 
             echo "🔑 Docker login"
             mkdir -p ~/.docker
@@ -141,14 +141,14 @@ EOF
               echo "⚠️ Docker login failed, trying manual auth config..."
               AUTH_TOKEN=\$(echo -n "\$DOCKER_USER:\$DOCKER_PASS" | base64 -w 0)
               cat > ~/.docker/config.json <<EOF
-{
-  "auths": {
-    "https://index.docker.io/v1/": {
-      "auth": "\$AUTH_TOKEN"
-    }
-  }
-}
-EOF
+                {
+                "auths": {
+                    "https://index.docker.io/v1/": {
+                    "auth": "\$AUTH_TOKEN"
+                    }
+                }
+                }
+                EOF
             fi
 
             echo "🧹 Dừng và xoá container cũ"
