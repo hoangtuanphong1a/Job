@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        BACKEND_IMAGE_NAME = "cv-king-backend"
-        FRONTEND_IMAGE_NAME = "cv-king-frontend"
+        BACKEND_IMAGE_NAME = "cv-king-backend-new"
+        FRONTEND_IMAGE_NAME = "cv-king-frontend-new"
         SERVER_HOST = "ec2-15-135-224-224.ap-southeast-2.compute.amazonaws.com"
         SERVER_USER = "ubuntu"
 
@@ -18,7 +18,7 @@ pipeline {
         JWT_EXPIRES_IN = "24h"
 
         // Docker Registry
-        DOCKER_REGISTRY = "docker.io/hoangtuanphong"
+        DOCKER_REGISTRY = "hoangtuanphong"
     }
 
     stages {
@@ -120,20 +120,7 @@ stage('Deploy Server') {
             export JWT_SECRET="$JWT_SECRET"
 
             echo "➡️ Tạo file .env"
-            cat > .env <<EOF
-            DB_HOST=centerbeam.proxy.rlwy.net
-            DB_PORT=13926
-            DB_NAME=railway
-            DB_USERNAME=root
-            DB_PASSWORD=$MYSQL_PASSWORD
 
-            DOCKER_REGISTRY=docker.io/$DOCKER_USER
-            BACKEND_IMAGE_NAME=$BACKEND_IMAGE_NAME
-            FRONTEND_IMAGE_NAME=$FRONTEND_IMAGE_NAME
-
-            JWT_SECRET=$JWT_SECRET
-            EOF
-            
             echo "🔑 Docker login"
             mkdir -p ~/.docker
             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin docker.io

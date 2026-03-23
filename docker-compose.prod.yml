@@ -45,7 +45,7 @@ services:
   #     - .env
 
   backend:
-    image: hoangtuanphong/cv-king-backend:latest
+    image: hoangtuanphong/cv-king-backend-new:latest
     container_name: cv-king-backend
     restart: unless-stopped
     environment:
@@ -66,7 +66,7 @@ services:
       - .env
 
   frontend:
-    image: hoangtuanphong/cv-king-frontend:latest
+    image: hoangtuanphong/cv-king-frontend-new:latest
     container_name: cv-king-frontend
     restart: unless-stopped
     environment:
