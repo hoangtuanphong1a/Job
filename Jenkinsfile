@@ -29,7 +29,7 @@ pipeline {
                 checkout([$class: 'GitSCM',
                     branches: [[name: '*/main']],
                     userRemoteConfigs: [[
-                        url: 'https://github.com/hoangtuanphong1a/cv-king.git',
+                        url: 'https://github.com/hoangtuanphong1a/Job.git',
                         credentialsId: 'github-pat'
                     ]]
                 ])
@@ -121,16 +121,16 @@ stage('Deploy Server') {
 
             echo "➡️ Tạo file .env"
             cat > .env <<EOF_ENV
-DB_CONNECTION_STRING=\$DB_CONN
-DOCKER_REGISTRY=docker.io/\$DOCKER_USER
-BACKEND_IMAGE_NAME=\$BACKEND_IMAGE_NAME
-FRONTEND_IMAGE_NAME=\$FRONTEND_IMAGE_NAME
-MYSQL_ROOT_PASSWORD=\$MYSQL_ROOT_PASSWORD
-MYSQL_DATABASE=\$MYSQL_DATABASE
-MYSQL_USER=\$MYSQL_USER
-MYSQL_PASSWORD=\$MYSQL_PASSWORD
-JWT_SECRET=\$JWT_SECRET
-EOF_ENV
+            DB_CONNECTION_STRING=\$DB_CONN
+            DOCKER_REGISTRY=docker.io/\$DOCKER_USER
+            BACKEND_IMAGE_NAME=\$BACKEND_IMAGE_NAME
+            FRONTEND_IMAGE_NAME=\$FRONTEND_IMAGE_NAME
+            MYSQL_ROOT_PASSWORD=\$MYSQL_ROOT_PASSWORD
+            MYSQL_DATABASE=\$MYSQL_DATABASE
+            MYSQL_USER=\$MYSQL_USER
+            MYSQL_PASSWORD=\$MYSQL_PASSWORD
+            JWT_SECRET=\$JWT_SECRET
+            EOF_ENV
 
             echo "🔑 Docker login"
             mkdir -p ~/.docker
