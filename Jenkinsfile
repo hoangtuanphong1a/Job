@@ -119,19 +119,19 @@ stage('Deploy Server') {
             export MYSQL_PASSWORD="$MYSQL_PASSWORD"
             export JWT_SECRET="$JWT_SECRET"
 
-            echo "➡️ Tạo file .env"
-            cat > .env <<EOF
-                DB_CONNECTION_STRING=\$DB_CONN
-                DOCKER_REGISTRY=docker.io/\$DOCKER_USER
-                BACKEND_IMAGE_NAME=\$BACKEND_IMAGE_NAME
-                FRONTEND_IMAGE_NAME=\$FRONTEND_IMAGE_NAME
-                MYSQL_ROOT_PASSWORD=\$MYSQL_ROOT_PASSWORD
-                MYSQL_DATABASE=\$MYSQL_DATABASE
-                MYSQL_USER=\$MYSQL_USER
-                MYSQL_PASSWORD=\$MYSQL_PASSWORD
-                JWT_SECRET=\$JWT_SECRET
-                EOF
+            echo "➡️ Tạo file .env"cat > .env <<EOF
+            DB_HOST=centerbeam.proxy.rlwy.net
+            DB_PORT=13926
+            DB_NAME=railway
+            DB_USERNAME=root
+            DB_PASSWORD=$MYSQL_PASSWORD
 
+            DOCKER_REGISTRY=docker.io/$DOCKER_USER
+            BACKEND_IMAGE_NAME=$BACKEND_IMAGE_NAME
+            FRONTEND_IMAGE_NAME=$FRONTEND_IMAGE_NAME
+
+            JWT_SECRET=$JWT_SECRET
+            EOF
             echo "🔑 Docker login"
             mkdir -p ~/.docker
             echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin docker.io
