@@ -49,8 +49,8 @@ services:
     container_name: cv-king-backend
     restart: unless-stopped
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: centerbeam.proxy.rlwy.net
+      DB_PORT: 13926
       DB_NAME: railway
       DB_USERNAME: root
       DB_PASSWORD: TokExscZiEiqyXnCgCkFmxXGobgmQqTM
@@ -60,9 +60,6 @@ services:
       NODE_ENV: production
     ports:
       - "3001:3001"
-    depends_on:
-      mysql:
-        condition: service_healthy
     networks:
       - cv-king-network
     env_file:
