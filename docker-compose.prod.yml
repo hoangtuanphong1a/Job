@@ -46,7 +46,7 @@ services:
 
   backend:
     image: ${DOCKER_REGISTRY}/${BACKEND_IMAGE_NAME}:latest
-    container_name: cv-king-backend
+    container_name: job-cv-backend
     restart: unless-stopped
     environment:
       DB_HOST: mysql
@@ -71,7 +71,7 @@ services:
 
   frontend:
     image: ${DOCKER_REGISTRY}/${FRONTEND_IMAGE_NAME}:latest
-    container_name: cv-king-frontend
+    container_name: job-cv-frontend
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: http://backend:3001

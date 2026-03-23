@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        BACKEND_IMAGE_NAME = "cv-king-backend"
-        FRONTEND_IMAGE_NAME = "cv-king-frontend"
-        SERVER_HOST = "15.135.224.224"
+        BACKEND_IMAGE_NAME = "job-cv-backend"
+        FRONTEND_IMAGE_NAME = "job-cv-frontend"
+        SERVER_HOST = "ec2-15-135-224-224.ap-southeast-2.compute.amazonaws.com"
         SERVER_USER = "ubuntu"
 
         // MySQL Configuration
