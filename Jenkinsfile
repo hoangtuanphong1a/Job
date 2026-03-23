@@ -87,7 +87,7 @@ stage('Deploy Server') {
             string(credentialsId: 'db-conn', variable: 'DB_CONN'),
             file(credentialsId: 'docker-compose-file', variable: 'DOCKER_COMPOSE_FILE')
         ]) {
-          sshagent (credentials: ['server-ssh-key']) {
+            sshagent (credentials: ['server-ssh-key']) {
             sh '''
             set -e
 
@@ -120,6 +120,17 @@ stage('Deploy Server') {
             export JWT_SECRET="$JWT_SECRET"
 
             echo "➡️ Tạo file .env"
+            cat > .env <<EOF_ENV
+            DB_CONNECTION_STRING=\$DB_CONN
+            DOCKER_REGISTRY=docker.io/\$DOCKER_USER
+            BACKEND_IMAGE_NAME=\$BACKEND_IMAGE_NAME
+            FRONTEND_IMAGE_NAME=\$FRONTEND_IMAGE_NAME
+            MYSQL_ROOT_PASSWORD=\$MYSQL_ROOT_PASSWORD
+            MYSQL_DATABASE=\$MYSQL_DATABASE
+            MYSQL_USER=\$MYSQL_USER
+            MYSQL_PASSWORD=\$MYSQL_PASSWORD
+            JWT_SECRET=\$JWT_SECRET
+            EOF_ENV
 
             echo "🔑 Docker login"
             mkdir -p ~/.docker
@@ -127,18 +138,18 @@ stage('Deploy Server') {
 
             # Alternative: Create auth config manually if login fails
             if [ \$? -ne 0 ]; then
-              echo "⚠️ Docker login failed, trying manual auth config..."
-              AUTH_TOKEN=\$(echo -n "\$DOCKER_USER:\$DOCKER_PASS" | base64 -w 0)
-              cat > ~/.docker/config.json <<EOF
-                {
-                "auths": {
-                    "https://index.docker.io/v1/": {
-                    "auth": "\$AUTH_TOKEN"
-                    }
-                }
-                }
-                EOF
-            fi
+                echo "⚠️ Docker login failed, trying manual auth config..."
+                AUTH_TOKEN=\$(echo -n "\$DOCKER_USER:\$DOCKER_PASS" | base64 -w 0)
+                cat > ~/.docker/config.json <<EOF_DOCKER
+    {
+    "auths": {
+        "https://index.docker.io/v1/": {
+        "auth": "\$AUTH_TOKEN"
+        }
+    }
+    }
+    EOF_DOCKER
+                fi
 
             echo "🧹 Dừng và xoá container cũ"
             docker compose --env-file .env down --timeout 60 --volumes --remove-orphans || true
@@ -162,7 +173,7 @@ stage('Deploy Server') {
             echo "✅ Deploy thành công!"
 REMOTE_EOF
             '''
-          }
+            }
         }
     }
 }
